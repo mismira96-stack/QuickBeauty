@@ -57,6 +57,7 @@ object BeautyFilterEngine {
         val faceSizeFactor = (params.faceSize / 100.0f).coerceIn(0f, 1f)
         val chinSlimFactor = (params.chinSlim / 100.0f).coerceIn(0f, 1f)
         val faceLengthFactor = (params.faceLength / 100.0f).coerceIn(0f, 1f)
+        val shoulderFactor = (params.shoulder / 100.0f).coerceIn(0f, 1f)
         val bodySlimFactor = (params.bodySlim / 100.0f).coerceIn(0f, 1f)
 
         val hasFace = landmarks?.hasFace == true
@@ -100,7 +101,30 @@ object BeautyFilterEngine {
         val foreheadTopY = fcY - fh * 0.50f
         val foreheadSpan = max(10f, fh * 0.30f)
 
-        // 4. 몸매 슬림 파라미터
+        // 4. 어깨 넓히기 (직각 어깨) 파라미터
+        val shoulderCenterY: Float
+        val leftShoulderX: Float
+        val rightShoulderX: Float
+        if (hasBody && landmarks != null && landmarks.leftShoulder.x > 0) {
+            shoulderCenterY = (landmarks.leftShoulder.y + landmarks.rightShoulder.y) * 0.5f
+            leftShoulderX = min(landmarks.leftShoulder.x, landmarks.rightShoulder.x)
+            rightShoulderX = max(landmarks.leftShoulder.x, landmarks.rightShoulder.x)
+        } else {
+            // 얼굴 위치 기준 인체 비율 추정 (상반신 포트레이트)
+            shoulderCenterY = chinY + fh * 0.45f
+            leftShoulderX = fcX - fw * 1.35f
+            rightShoulderX = fcX + fw * 1.35f
+        }
+        val shoulderCenterX = (leftShoulderX + rightShoulderX) * 0.5f
+        val shoulderSpanX = max(40f, rightShoulderX - leftShoulderX)
+        val shoulderHalfSpan = shoulderSpanX * 0.5f
+        val maxShoulderPush = shoulderSpanX * 0.055f * shoulderFactor
+
+        val shoulderTopY = chinY + fh * 0.08f
+        val shoulderBotY = shoulderCenterY + shoulderHalfSpan * 0.55f
+        val shoulderYSpan = max(20f, shoulderBotY - shoulderTopY)
+
+        // 5. 몸매 슬림 파라미터
         val bodyCenterY = landmarks?.bodyCenterY ?: 0f
         val bodyCenterX = landmarks?.bodyBounds?.centerX() ?: 0f
         val bodyTopY = landmarks?.bodyTopY ?: 0f
@@ -223,7 +247,51 @@ object BeautyFilterEngine {
                 }
 
                 // ==========================================
-                // 4. 몸매 슬림 (Body Slim)
+                // 4. 어깨 넓히기 (Shoulder Broaden / 직각 어깨)
+                // 목은 안전하게 보호하고, 어깨선만 바깥으로 확장하여 당당한 직각 어깨 핏 형성
+                // ==========================================
+                if (shoulderFactor > 0.001f && origY in shoulderTopY..shoulderBotY) {
+                    val yNorm = (origY - shoulderTopY) / shoulderYSpan
+                    val yWeight = sin(yNorm * Math.PI.toFloat())
+
+                    val dx = origX - shoulderCenterX
+                    val absDx = abs(dx)
+
+                    // 목 보호 영역 (안쪽 25% 고정), 피크는 90%, 외곽은 145%까지 자연스러운 감쇄
+                    val neckProtectW = shoulderHalfSpan * 0.25f
+                    val shoulderPeakW = shoulderHalfSpan * 0.90f
+                    val shoulderOuterW = shoulderHalfSpan * 1.45f
+
+                    val xWeight: Float = when {
+                        absDx <= neckProtectW -> 0f
+                        absDx < shoulderPeakW -> {
+                            val t = (absDx - neckProtectW) / (shoulderPeakW - neckProtectW)
+                            t * t * (3f - 2f * t)
+                        }
+                        absDx <= shoulderOuterW -> {
+                            val t = (shoulderOuterW - absDx) / (shoulderOuterW - shoulderPeakW)
+                            t * t * (3f - 2f * t)
+                        }
+                        else -> 0f
+                    }
+
+                    if (xWeight > 0f && yWeight > 0f) {
+                        val push = maxShoulderPush * yWeight * xWeight
+                        if (dx < 0f) {
+                            currX -= push // 좌측 어깨 -> 바깥쪽(왼쪽)으로 확장
+                        } else {
+                            currX += push // 우측 어깨 -> 바깥쪽(오른쪽)으로 확장
+                        }
+                        // 직각 어깨 미세 리프팅 (외곽 어깨 끝을 살짝 올려 처진 어깨 반듯하게 교정)
+                        if (absDx >= shoulderHalfSpan * 0.50f) {
+                            val liftWeight = ((absDx - shoulderHalfSpan * 0.50f) / (shoulderHalfSpan * 0.50f)).coerceIn(0f, 1f)
+                            currY -= push * 0.18f * liftWeight
+                        }
+                    }
+                }
+
+                // ==========================================
+                // 5. 몸매 슬림 (Body Slim)
                 // 복부/허리 라인을 중앙으로 완만하게 축소
                 // ==========================================
                 if (bodySlimFactor > 0.001f && hasBody) {
@@ -270,7 +338,7 @@ object BeautyFilterEngine {
             paint.colorFilter = ColorMatrixColorFilter(cm)
         }
 
-        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.bodySlim > 0) && landmarks != null
+        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0) && landmarks != null
         if (needWarp) {
             val validLandmarks = landmarks!!
             val scaledLandmarks = if (validLandmarks.imageWidth == w && validLandmarks.imageHeight == h) {

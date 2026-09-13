@@ -80,11 +80,12 @@ class BeautyLandmarks(
         }
 
         if (!hasBody) {
-            val bcX = imageWidth * 0.5f
-            bodyTopY = imageHeight * 0.30f
-            bodyBottomY = imageHeight * 0.85f
+            val bcX = faceCenter.x
+            val fh = faceBounds.height()
+            bodyTopY = chinPoint.y + fh * 0.20f
+            bodyBottomY = max(imageHeight.toFloat(), bodyTopY + fh * 2.0f)
             bodyCenterY = (bodyTopY + bodyBottomY) * 0.5f
-            val halfWidth = imageWidth * 0.30f
+            val halfWidth = max(imageWidth * 0.25f, faceBounds.width() * 1.35f)
             leftShoulder.set(bcX - halfWidth, bodyTopY)
             rightShoulder.set(bcX + halfWidth, bodyTopY)
             leftHip.set(bcX - halfWidth * 0.85f, bodyCenterY)

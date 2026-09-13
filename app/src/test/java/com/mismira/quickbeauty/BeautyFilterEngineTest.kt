@@ -7,11 +7,12 @@ class BeautyFilterEngineTest {
 
     @Test
     fun testParamsClampingAndReset() {
-        val params = BeautyAdjustParams(-10, 150, 50, 80, 0)
+        val params = BeautyAdjustParams(-10, 150, 50, 80, 70, 0)
         Assert.assertEquals(0, params.coolTone)
         Assert.assertEquals(100, params.faceSize)
         Assert.assertEquals(50, params.chinSlim)
         Assert.assertEquals(80, params.faceLength)
+        Assert.assertEquals(70, params.shoulder)
         Assert.assertEquals(0, params.bodySlim)
 
         Assert.assertFalse(params.isDefault())
@@ -22,13 +23,15 @@ class BeautyFilterEngineTest {
 
     @Test
     fun testParamsCopy() {
-        val original = BeautyAdjustParams(20, 30, 40, 50, 60)
+        val original = BeautyAdjustParams(20, 30, 40, 50, 60, 70)
         val copied = original.copy()
 
         Assert.assertEquals(original.coolTone, copied.coolTone)
         Assert.assertEquals(original.faceSize, copied.faceSize)
         Assert.assertEquals(original.chinSlim, copied.chinSlim)
         Assert.assertEquals(original.faceLength, copied.faceLength)
+        Assert.assertEquals(original.shoulder, copied.shoulder)
+        Assert.assertEquals(original.bodySlim, copied.bodySlim)
 
         copied.coolTone = 90
         Assert.assertEquals(20, original.coolTone)
@@ -135,11 +138,50 @@ class BeautyFilterEngineTest {
     }
 
     @Test
+    fun testComputeWarpedVerticesWithShoulderBroadeningExpandsShoulders() {
+        val w = 1000
+        val h = 1000
+        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+
+        val params = BeautyAdjustParams(0, 0, 0, 0, 100, 0)
+        val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(0, 0, 0, 0, 0, 0))
+
+        var leftShoulderPushedLeft = false
+        var rightShoulderPushedRight = false
+
+        val leftSX = lm.leftShoulder.x
+        val rightSX = lm.rightShoulder.x
+        val sY = lm.leftShoulder.y
+
+        for (i in warped.indices step 2) {
+            val origX = original[i]
+            val origY = original[i + 1]
+
+            // 좌측 어깨 부근: X가 왼쪽(감소)으로 밀려야 함
+            if (kotlin.math.abs(origX - leftSX) < 60f && kotlin.math.abs(origY - sY) < 60f) {
+                if (warped[i] < origX - 1.0f) {
+                    leftShoulderPushedLeft = true
+                }
+            }
+            // 우측 어깨 부근: X가 오른쪽(증가)으로 밀려야 함
+            if (kotlin.math.abs(origX - rightSX) < 60f && kotlin.math.abs(origY - sY) < 60f) {
+                if (warped[i] > origX + 1.0f) {
+                    rightShoulderPushedRight = true
+                }
+            }
+        }
+
+        Assert.assertTrue("Shoulder broadening must push left shoulder outward (left)", leftShoulderPushedLeft)
+        Assert.assertTrue("Shoulder broadening must push right shoulder outward (right)", rightShoulderPushedRight)
+    }
+
+    @Test
     fun testMonotonicityNoMeshInversion() {
         val w = 1000
         val h = 1000
         val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
-        val maxParams = BeautyAdjustParams(100, 100, 100, 100, 100)
+        val maxParams = BeautyAdjustParams(100, 100, 100, 100, 100, 100)
 
         val verts = BeautyFilterEngine.computeWarpedVertices(w, h, lm, maxParams)
         val meshW = BeautyFilterEngine.MESH_W

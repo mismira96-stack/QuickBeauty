@@ -36,7 +36,8 @@ class MainActivity : AppCompatActivity() {
         private const val TAB_FACE_SIZE = 1
         private const val TAB_CHIN_SLIM = 2
         private const val TAB_FACE_LENGTH = 3
-        private const val TAB_BODY_SLIM = 4
+        private const val TAB_SHOULDER = 4
+        private const val TAB_BODY_SLIM = 5
     }
 
     private var currentTab = TAB_COOL_TONE
@@ -56,6 +57,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabFaceSize: TextView
     private lateinit var tabChinSlim: TextView
     private lateinit var tabFaceLength: TextView
+    private lateinit var tabShoulder: TextView
     private lateinit var tabBodySlim: TextView
 
     private var targetImageUri: Uri? = null
@@ -103,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         tabFaceSize = findViewById(R.id.tabFaceSize)
         tabChinSlim = findViewById(R.id.tabChinSlim)
         tabFaceLength = findViewById(R.id.tabFaceLength)
+        tabShoulder = findViewById(R.id.tabShoulder)
         tabBodySlim = findViewById(R.id.tabBodySlim)
 
         findViewById<View>(R.id.btnClose).setOnClickListener { finish() }
@@ -113,6 +116,7 @@ class MainActivity : AppCompatActivity() {
         tabFaceSize.setOnClickListener { selectTab(TAB_FACE_SIZE) }
         tabChinSlim.setOnClickListener { selectTab(TAB_CHIN_SLIM) }
         tabFaceLength.setOnClickListener { selectTab(TAB_FACE_LENGTH) }
+        tabShoulder.setOnClickListener { selectTab(TAB_SHOULDER) }
         tabBodySlim.setOnClickListener { selectTab(TAB_BODY_SLIM) }
 
         seekBarAdjust.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -176,8 +180,9 @@ class MainActivity : AppCompatActivity() {
         val fs = prefs.getInt("pref_face_size", prefs.getInt("pref_face_slim", 0))
         val cs = prefs.getInt("pref_chin_slim", 0)
         val fl = prefs.getInt("pref_face_length", 0)
+        val sh = prefs.getInt("pref_shoulder", 0)
         val b = prefs.getInt("pref_body_slim", 0)
-        params.set(c, fs, cs, fl, b)
+        params.set(c, fs, cs, fl, sh, b)
         updateResetButton()
     }
 
@@ -188,6 +193,7 @@ class MainActivity : AppCompatActivity() {
             .putInt("pref_face_slim", params.faceSize)
             .putInt("pref_chin_slim", params.chinSlim)
             .putInt("pref_face_length", params.faceLength)
+            .putInt("pref_shoulder", params.shoulder)
             .putInt("pref_body_slim", params.bodySlim)
             .apply()
     }
@@ -309,7 +315,7 @@ class MainActivity : AppCompatActivity() {
     private fun selectTab(tab: Int) {
         this.currentTab = tab
 
-        val tabs = listOf(tabCoolTone, tabFaceSize, tabChinSlim, tabFaceLength, tabBodySlim)
+        val tabs = listOf(tabCoolTone, tabFaceSize, tabChinSlim, tabFaceLength, tabShoulder, tabBodySlim)
         tabs.forEachIndexed { index, tv ->
             val isSelected = index == tab
             tv.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#71717A"))
@@ -321,6 +327,7 @@ class MainActivity : AppCompatActivity() {
             TAB_FACE_SIZE -> params.faceSize
             TAB_CHIN_SLIM -> params.chinSlim
             TAB_FACE_LENGTH -> params.faceLength
+            TAB_SHOULDER -> params.shoulder
             TAB_BODY_SLIM -> params.bodySlim
             else -> params.coolTone
         }
@@ -336,6 +343,7 @@ class MainActivity : AppCompatActivity() {
             TAB_FACE_SIZE -> params.faceSize = progress
             TAB_CHIN_SLIM -> params.chinSlim = progress
             TAB_FACE_LENGTH -> params.faceLength = progress
+            TAB_SHOULDER -> params.shoulder = progress
             TAB_BODY_SLIM -> params.bodySlim = progress
         }
         savePreferences()

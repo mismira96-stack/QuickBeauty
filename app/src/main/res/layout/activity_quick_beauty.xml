@@ -148,7 +148,7 @@
         android:paddingBottom="16dp"
         android:paddingHorizontal="20dp">
 
-        <!-- 1단: 5개 탭 (쿨톤, 얼굴, 턱선, 길이, 몸매) -->
+        <!-- 1단: 6개 탭 (쿨톤, 얼굴, 턱선, 길이, 어깨, 몸매) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="38dp"
@@ -162,7 +162,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="쿨톤"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
                 android:clickable="true"
@@ -176,7 +176,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="얼굴"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textColor="#71717A"
                 android:clickable="true"
                 android:focusable="true"
@@ -189,7 +189,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="턱선"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textColor="#71717A"
                 android:clickable="true"
                 android:focusable="true"
@@ -202,7 +202,20 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="길이"
-                android:textSize="14sp"
+                android:textSize="13sp"
+                android:textColor="#71717A"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless" />
+
+            <TextView
+                android:id="@+id/tabShoulder"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="어깨"
+                android:textSize="13sp"
                 android:textColor="#71717A"
                 android:clickable="true"
                 android:focusable="true"
@@ -215,7 +228,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="몸매"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textColor="#71717A"
                 android:clickable="true"
                 android:focusable="true"
