@@ -1,46 +1,37 @@
-﻿# QuickBeauty (간편 뷰티 ✨)
+# QuickBeauty (간편 뷰티 ✨)
 
 > **초경량 100% 온디바이스 뷰티 필터 독립 Android 앱**  
 > 외부 서버 전송 없이 내 스마트폰 안에서 0ms 지연시간으로 실시간 뷰티 보정을 수행합니다.
 
 ---
 
-## ✨ 핵심 기능
+## ✨ 핵심 기능 (6대 정밀 보정 툴킷)
 
-1. **❄️ 쿨톤 피부 톤업**
-   - 황색기(Yellow) 억제 및 핑크/블루 톤업
-   - 5x4 ColorMatrix 기반의 화사한 명도 부스트 연산
-2. **👤 얼굴 크기 축소**
-   - Google ML Kit 얼굴 랜드마크 중심 자연스러운 방사형 수축
-3. **✨ 턱선 V라인 & 리프팅**
-   - 턱 끝 랜드마크 중심 2차 에르미트 감쇄(Smooth Hermite Falloff)를 통한 턱선 갸름화 및 턱 끝 리프팅
-4. **🧍 몸매 슬림**
-   - 어깨~골반~다리 라인 슬림 압축 및 배경 왜곡 방지 페이드아웃
-5. **👆 꾹 누르면 원본 보기**
-   - 프리뷰 터치 다운 시 원본 무보정 화면 즉시 노출, 손을 떼면 0ms 딜레이로 보정본 복귀
-6. **⚡ 60fps 온디바이스 실시간 연산**
-   - GPU 드라이버 호환성 이슈 없는 Skia 소프트웨어 비트맵 메시(`drawBitmapMesh`) + `ColorMatrix` 연산
+1. **❄️ 쿨톤**: 맑고 화사한 피부 톤업 및 노란기·붉은기 정밀 억제 (5x4 ColorMatrix)
+2. **👤 작은얼굴**: 두상 및 얼굴 전체 크기 축소 (**소두 효과** - 이목구비 왜곡 없는 등각 스케일)
+3. **✨ 턱선**: 사각턱 및 옆볼선 V라인 슬리밍 (T-Zone 100% 보호)
+4. **📏 얼굴길이**: 턱 끝 리프팅 및 하관/인중 단축으로 동안 황금 비율 완성
+5. **🧍‍♂️ 어깨**: 광각 왜곡으로 좁아진 어깨를 넓혀주고 어깨 끝을 세워주는 **직각 어깨 치트키**
+6. **🧍‍♀️ 몸매**: 허리 및 복부 라인 완만한 슬림 보정
+7. **👆 꾹 누르면 원본 보기**: 프리뷰 터치 다운 시 0ms 딜레이로 원본과 실시간 비교
 
 ---
 
-## 📲 진입 및 사용 방식
+## 💎 화질 & 프라이버시
 
-- **삼성 갤러리 연동**:
-  - 사진 감상 중 **[공유]** 또는 **[다른 앱으로 편집]** 터치 시 목록에 `간편 뷰티 ✨`로 즉시 노출
-  - `ACTION_SEND`, `ACTION_SEND_MULTIPLE`, `ACTION_EDIT`, `ACTION_VIEW`, `ClipData` 모두 지원
-- **홈 화면 단독 실행**:
-  - 앱 아이콘 터치 시 삼성 갤러리 사진 선택기가 즉시 실행되어 사진 선택 후 바로 보정 시작
-- **초고화질 저장**:
-  - 보정 완료 후 [저장] 터치 시 최대 4096px 4K 고화질로 갤러리(`Pictures/QuickBeauty`)에 즉시 저장
+- **100% 온디바이스 (서버 전송 ZERO)**: 비행기 탑승 모드에서도 완전 동작, 얼굴 사진 외부 유출 원천 차단.
+- **100% 원본 무손실 해상도 보존**: 4096px 캡 없이 원본 해상도(12MP~100MP) 1:1 디코딩 및 JPEG 98 / PNG 100 무손실 저장.
+- **카메라 EXIF 메타데이터 100% 복사**: 카메라 기종, 렌즈 초점거리, F값, ISO, GPS 위치 정보 유지.
+- **갤러리 최상단 즉시 정렬**: 저장 날짜를 현재 시각으로 기록하여 `DCIM/QuickBeauty` 폴더 및 삼성 갤러리 맨 위(오늘/방금 전)에 즉시 노출.
 
 ---
 
 ## 🛠️ 기술 스택 & 개발 환경
 
-- **Platform**: Android (Target SDK 36, Min SDK 29)
-- **Language**: Java 17
+- **Platform**: Android (Target SDK 36, Min SDK 29, Android 16 16KB 메모리 정렬 완벽 호환)
+- **Language**: 100% Kotlin
 - **AI/ML Engine**: Google ML Kit (Face Detection 16.1.7, Pose Detection 18.0.0-beta3)
-- **Rendering**: Android Canvas Bitmap Mesh + ColorMatrix
+- **Rendering**: Android Canvas Bitmap Mesh (`drawBitmapMesh`) + 60x60 적응형 고밀도 메쉬 + Skia ColorMatrix
 - **Package**: `com.mismira.quickbeauty`
 
 ---
