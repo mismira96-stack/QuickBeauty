@@ -389,7 +389,7 @@ class MainActivity : AppCompatActivity() {
 
             progressBar.visibility = View.GONE
             if (savedUri != null) {
-                Toast.makeText(this@MainActivity, "원본 고화질 그대로 저장되었습니다! ✨", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "새 사진으로 저장 완료! ✨ (갤러리 최신 사진)", Toast.LENGTH_LONG).show()
                 finish()
             } else {
                 Toast.makeText(this@MainActivity, "저장에 실패했습니다.", Toast.LENGTH_SHORT).show()

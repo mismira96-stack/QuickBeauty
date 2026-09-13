@@ -126,7 +126,8 @@ object BeautyBitmapUtils {
             context.contentResolver.getType(uri)?.contains("png", ignoreCase = true) == true
         } ?: false
 
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val nowMs = System.currentTimeMillis()
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date(nowMs))
         val extension = if (isPng) "png" else "jpg"
         val mimeType = if (isPng) "image/png" else "image/jpeg"
         val fileName = "Beauty_$timeStamp.$extension"
@@ -134,12 +135,14 @@ object BeautyBitmapUtils {
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
             put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-            put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-            put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
+            put(MediaStore.Images.Media.DATE_ADDED, nowMs / 1000)
+            put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
+            put(MediaStore.Images.Media.DATE_MODIFIED, nowMs / 1000)
             put(MediaStore.Images.Media.WIDTH, bitmap.width)
             put(MediaStore.Images.Media.HEIGHT, bitmap.height)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/QuickBeauty")
+                // DCIM 폴더 아래 저장하여 삼성 갤러리 메인 앨범에 즉시 노출
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/QuickBeauty")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }
@@ -158,7 +161,7 @@ object BeautyBitmapUtils {
                 out.flush()
             }
 
-            // 원본 사진의 EXIF 메타데이터(촬영일시, 카메라 기종, 렌즈 등) 보존 복사
+            // 원본 사진의 카메라 기종, 렌즈 등 EXIF 복사 (촬영일시는 현재로 설정하여 최신 사진으로 정렬)
             if (!isPng && sourceUri != null) {
                 copyExifMetadata(context, sourceUri, imageUri)
             }
@@ -166,10 +169,23 @@ object BeautyBitmapUtils {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 values.clear()
                 values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                values.put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
+                values.put(MediaStore.Images.Media.DATE_ADDED, nowMs / 1000)
+                values.put(MediaStore.Images.Media.DATE_MODIFIED, nowMs / 1000)
                 resolver.update(imageUri, values, null, null)
-            } else {
-                MediaScannerConnection.scanFile(context, arrayOf(imageUri.path), arrayOf(mimeType), null)
             }
+
+            // 갤러리 색인 즉시 갱신 (삼성 갤러리 최신 사진 탭에 즉각 반영)
+            try {
+                val projection = arrayOf(MediaStore.Images.Media.DATA)
+                val filePath = resolver.query(imageUri, projection, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                }
+                if (filePath != null) {
+                    MediaScannerConnection.scanFile(context, arrayOf(filePath), arrayOf(mimeType), null)
+                }
+            } catch (_: Throwable) {}
+
             imageUri
         } catch (t: Throwable) {
             Log.e(TAG, "갤러리 저장 실패: ${t.message}", t)
@@ -196,9 +212,6 @@ object BeautyBitmapUtils {
                 val dstExif = ExifInterface(pfd.fileDescriptor)
 
                 val tagsToCopy = arrayOf(
-                    ExifInterface.TAG_DATETIME,
-                    ExifInterface.TAG_DATETIME_ORIGINAL,
-                    ExifInterface.TAG_DATETIME_DIGITIZED,
                     ExifInterface.TAG_MAKE,
                     ExifInterface.TAG_MODEL,
                     ExifInterface.TAG_F_NUMBER,
@@ -225,6 +238,13 @@ object BeautyBitmapUtils {
                         dstExif.setAttribute(tag, value)
                     }
                 }
+
+                // 갤러리 타임라인 최상단(오늘/방금 전 최신 사진)에 즉시 정렬되도록 날짜는 현재 시각으로 설정
+                val nowFormat = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.getDefault()).format(Date())
+                dstExif.setAttribute(ExifInterface.TAG_DATETIME, nowFormat)
+                dstExif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, nowFormat)
+                dstExif.setAttribute(ExifInterface.TAG_DATETIME_DIGITIZED, nowFormat)
+
                 // 이미지는 디코딩 시 정방향으로 회전 완료되었으므로 ORIENTATION_NORMAL로 고정
                 dstExif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
                 dstExif.saveAttributes()
