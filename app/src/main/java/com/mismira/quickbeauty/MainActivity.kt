@@ -165,9 +165,9 @@ class MainActivity : AppCompatActivity() {
             // 하단 패널 2단 초슬림화: 태스크바 및 제스처 바 여백 확보
             val bottomPadding = max(insets.bottom, dpToPx(48)) + dpToPx(8)
             bottomControlPanel.updatePadding(
-                left = dpToPx(20),
+                left = dpToPx(14),
                 top = dpToPx(10),
-                right = dpToPx(20),
+                right = dpToPx(14),
                 bottom = bottomPadding
             )
 
