@@ -54,7 +54,8 @@ object BeautyFilterEngine {
         val totalVerts = (meshW + 1) * (meshH + 1)
         val verts = FloatArray(totalVerts * 2)
 
-        val faceSlimFactor = (params.faceSlim / 100.0f).coerceIn(0f, 1f)
+        val faceSizeFactor = (params.faceSize / 100.0f).coerceIn(0f, 1f)
+        val chinSlimFactor = (params.chinSlim / 100.0f).coerceIn(0f, 1f)
         val faceLengthFactor = (params.faceLength / 100.0f).coerceIn(0f, 1f)
         val bodySlimFactor = (params.bodySlim / 100.0f).coerceIn(0f, 1f)
 
@@ -68,23 +69,28 @@ object BeautyFilterEngine {
         val fw = max(20f, landmarks?.faceBounds?.width() ?: (width * 0.35f))
         val fh = max(20f, landmarks?.faceBounds?.height() ?: (height * 0.35f))
 
-        // 세로 위치 기준점
+        // 1. 얼굴 전체 크기 축소 (소두 효과 - X/Y 비율 유지 전체 축소) 파라미터
+        val headRadius = max(fw, fh) * 0.70f
+        val headInnerR = headRadius * 0.60f
+        val headOuterR = headRadius * 1.35f
+        val maxHeadScale = 0.085f * faceSizeFactor
+
+        // 2. 턱선 V라인 슬림 파라미터
         val chinY = landmarks?.chinPoint?.y ?: (fcY + fh * 0.45f)
         val mouthY = landmarks?.mouthPoint?.y ?: (fcY + fh * 0.28f)
         val noseBaseY = landmarks?.noseBase?.y ?: (fcY + fh * 0.08f)
         val neckY = chinY + fh * 0.35f
 
-        // 1. 얼굴 가로 폭 슬리밍 (볼/사각턱 축소) 파라미터
-        val cheekTopY = fcY - fh * 0.08f
-        val cheekBotY = chinY
-        val ySpan = max(20f, (cheekBotY + fh * 0.12f) - (cheekTopY - fh * 0.12f))
-        val yStart = cheekTopY - fh * 0.12f
-        val innerProtectW = fw * 0.18f
-        val peakCheekW = fw * 0.46f
-        val outerFalloffW = fw * 0.82f
-        val maxCheekPush = fw * 0.065f * faceSlimFactor
+        val jawTopY = mouthY - fh * 0.05f
+        val jawBotY = chinY
+        val jawSpan = max(20f, (jawBotY + fh * 0.10f) - (jawTopY - fh * 0.05f))
+        val jawYStart = jawTopY - fh * 0.05f
+        val jawInnerProtectW = fw * 0.15f
+        val jawPeakW = fw * 0.45f
+        val jawOuterW = fw * 0.78f
+        val maxJawPush = fw * 0.060f * chinSlimFactor
 
-        // 2. 얼굴 세로 길이 축소 (하관 리프팅 / 긴 얼굴 단축) 파라미터
+        // 3. 얼굴 세로 길이 축소 (하관 리프팅 / 긴 얼굴 단축) 파라미터
         val maxChinLift = fh * 0.075f * faceLengthFactor
         val lengthInnerW = fw * 0.40f
         val lengthOuterW = fw * 0.75f
@@ -94,7 +100,7 @@ object BeautyFilterEngine {
         val foreheadTopY = fcY - fh * 0.50f
         val foreheadSpan = max(10f, fh * 0.30f)
 
-        // 3. 몸매 슬림 파라미터
+        // 4. 몸매 슬림 파라미터
         val bodyCenterY = landmarks?.bodyCenterY ?: 0f
         val bodyCenterX = landmarks?.bodyBounds?.centerX() ?: 0f
         val bodyTopY = landmarks?.bodyTopY ?: 0f
@@ -111,42 +117,63 @@ object BeautyFilterEngine {
                 var currY = origY
 
                 // ==========================================
-                // 1. 얼굴 가로 폭 축소 (Face Slim)
-                // 눈·코·입 중심 영역 100% 보존, 옆볼/사각턱만 부드럽게 축소
+                // 1. 얼굴 전체 크기 축소 (Face Size - 소두)
+                // 두상/얼굴 전체를 X, Y 균일하게 축소하여 어깨 대비 얼굴 비율 축소
                 // ==========================================
-                if (faceSlimFactor > 0.001f && hasFace) {
-                    val yNorm = (origY - yStart) / ySpan
+                if (faceSizeFactor > 0.001f && hasFace) {
+                    val dx = origX - fcX
+                    val dy = origY - fcY
+                    val dist = sqrt(dx * dx + dy * dy)
+                    if (dist < headOuterR) {
+                        val w = if (dist <= headInnerR) {
+                            1.0f
+                        } else {
+                            val t = (headOuterR - dist) / (headOuterR - headInnerR)
+                            t * t * (3f - 2f * t)
+                        }
+                        val s = maxHeadScale * w
+                        currX -= dx * s
+                        currY -= dy * s * 0.90f
+                    }
+                }
+
+                // ==========================================
+                // 2. 턱선 V라인 슬림 (Jawline V-Line)
+                // 양 볼살 및 사각턱 라인을 V라인으로 갸름하게 압축
+                // ==========================================
+                if (chinSlimFactor > 0.001f && hasFace) {
+                    val yNorm = (origY - jawYStart) / jawSpan
                     if (yNorm in 0f..1f) {
                         val yWeight = sin(yNorm * Math.PI.toFloat())
                         val dx = origX - fcX
                         val absDx = abs(dx)
 
                         val xWeight: Float = when {
-                            absDx <= innerProtectW -> 0f
-                            absDx < peakCheekW -> {
-                                val t = (absDx - innerProtectW) / (peakCheekW - innerProtectW)
+                            absDx <= jawInnerProtectW -> 0f
+                            absDx < jawPeakW -> {
+                                val t = (absDx - jawInnerProtectW) / (jawPeakW - jawInnerProtectW)
                                 t * t * (3f - 2f * t)
                             }
-                            absDx <= outerFalloffW -> {
-                                val t = (outerFalloffW - absDx) / (outerFalloffW - peakCheekW)
+                            absDx <= jawOuterW -> {
+                                val t = (jawOuterW - absDx) / (jawOuterW - jawPeakW)
                                 t * t * (3f - 2f * t)
                             }
                             else -> 0f
                         }
 
                         if (xWeight > 0f && yWeight > 0f) {
-                            val push = maxCheekPush * yWeight * xWeight
+                            val push = maxJawPush * yWeight * xWeight
                             if (dx < 0f) {
-                                currX += push // 좌측 볼 -> 안쪽으로 수축
+                                currX += push // 좌측 턱 -> 안쪽으로 수축
                             } else {
-                                currX -= push // 우측 볼 -> 안쪽으로 수축
+                                currX -= push // 우측 턱 -> 안쪽으로 수축
                             }
                         }
                     }
                 }
 
                 // ==========================================
-                // 2. 얼굴 세로 길이 축소 (Face Length / Chin Lift)
+                // 3. 얼굴 세로 길이 축소 (Face Length / Chin Lift)
                 // 턱 끝을 끌어올려 긴 하관/인중을 동안 비율로 단축
                 // ==========================================
                 if (faceLengthFactor > 0.001f && hasFace) {
@@ -196,7 +223,7 @@ object BeautyFilterEngine {
                 }
 
                 // ==========================================
-                // 3. 몸매 슬림 (Body Slim)
+                // 4. 몸매 슬림 (Body Slim)
                 // 복부/허리 라인을 중앙으로 완만하게 축소
                 // ==========================================
                 if (bodySlimFactor > 0.001f && hasBody) {
@@ -243,7 +270,7 @@ object BeautyFilterEngine {
             paint.colorFilter = ColorMatrixColorFilter(cm)
         }
 
-        val needWarp = (params.faceSlim > 0 || params.faceLength > 0 || params.bodySlim > 0) && landmarks != null
+        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.bodySlim > 0) && landmarks != null
         if (needWarp) {
             val validLandmarks = landmarks!!
             val scaledLandmarks = if (validLandmarks.imageWidth == w && validLandmarks.imageHeight == h) {

@@ -7,10 +7,11 @@ class BeautyFilterEngineTest {
 
     @Test
     fun testParamsClampingAndReset() {
-        val params = BeautyAdjustParams(-10, 150, 50, 0)
+        val params = BeautyAdjustParams(-10, 150, 50, 80, 0)
         Assert.assertEquals(0, params.coolTone)
-        Assert.assertEquals(100, params.faceSlim)
+        Assert.assertEquals(100, params.faceSize)
         Assert.assertEquals(50, params.chinSlim)
+        Assert.assertEquals(80, params.faceLength)
         Assert.assertEquals(0, params.bodySlim)
 
         Assert.assertFalse(params.isDefault())
@@ -21,11 +22,13 @@ class BeautyFilterEngineTest {
 
     @Test
     fun testParamsCopy() {
-        val original = BeautyAdjustParams(20, 30, 40, 50)
+        val original = BeautyAdjustParams(20, 30, 40, 50, 60)
         val copied = original.copy()
 
         Assert.assertEquals(original.coolTone, copied.coolTone)
-        Assert.assertEquals(original.faceSlim, copied.faceSlim)
+        Assert.assertEquals(original.faceSize, copied.faceSize)
+        Assert.assertEquals(original.chinSlim, copied.chinSlim)
+        Assert.assertEquals(original.faceLength, copied.faceLength)
 
         copied.coolTone = 90
         Assert.assertEquals(20, original.coolTone)
@@ -68,7 +71,7 @@ class BeautyFilterEngineTest {
         val w = 1000
         val h = 1000
         val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
-        val zeroParams = BeautyAdjustParams(0, 0, 0, 0)
+        val zeroParams = BeautyAdjustParams(0, 0, 0, 0, 0)
 
         val verts = BeautyFilterEngine.computeWarpedVertices(w, h, lm, zeroParams)
         val totalVerts = 41 * 41
@@ -81,25 +84,25 @@ class BeautyFilterEngineTest {
     }
 
     @Test
-    fun testComputeWarpedVerticesWithFaceSlimShiftsInward() {
+    fun testComputeWarpedVerticesWithFaceSizeShrinksBothXAndY() {
         val w = 1000
         val h = 1000
         val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
 
-        val params = BeautyAdjustParams(0, 100, 0, 0)
+        val params = BeautyAdjustParams(0, 100, 0, 0, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
-        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(0, 0, 0, 0))
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(0, 0, 0, 0, 0))
 
-        var hasDisplacement = false
+        var hasXDisplacement = false
+        var hasYDisplacement = false
         for (i in warped.indices step 2) {
             val dx = kotlin.math.abs(warped[i] - original[i])
             val dy = kotlin.math.abs(warped[i + 1] - original[i + 1])
-            if (dx > 0.5f || dy > 0.5f) {
-                hasDisplacement = true
-                break
-            }
+            if (dx > 1.0f) hasXDisplacement = true
+            if (dy > 1.0f) hasYDisplacement = true
         }
-        Assert.assertTrue("Face slim should produce vertex displacement", hasDisplacement)
+        Assert.assertTrue("Face size reduction must shrink X dimension", hasXDisplacement)
+        Assert.assertTrue("Face size reduction must shrink Y dimension (not just width)", hasYDisplacement)
     }
 
     @Test
@@ -108,9 +111,9 @@ class BeautyFilterEngineTest {
         val h = 1000
         val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
 
-        val params = BeautyAdjustParams(0, 0, 100, 0)
+        val params = BeautyAdjustParams(0, 0, 0, 100, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
-        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(0, 0, 0, 0))
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(0, 0, 0, 0, 0))
 
         // 턱 끝 좌표 근처의 버텍스는 위쪽으로 이동(Y값 감소)해야 함
         var chinLiftDetected = false
@@ -136,7 +139,7 @@ class BeautyFilterEngineTest {
         val w = 1000
         val h = 1000
         val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
-        val maxParams = BeautyAdjustParams(100, 100, 100, 100)
+        val maxParams = BeautyAdjustParams(100, 100, 100, 100, 100)
 
         val verts = BeautyFilterEngine.computeWarpedVertices(w, h, lm, maxParams)
         val meshW = BeautyFilterEngine.MESH_W
