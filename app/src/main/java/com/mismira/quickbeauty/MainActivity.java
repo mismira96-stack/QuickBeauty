@@ -58,10 +58,50 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quick_beauty);
 
+        applyWindowInsets();
         initViews();
         detector = new FaceBodyDetector();
 
         handleIntent(getIntent());
+    }
+
+    private void applyWindowInsets() {
+        View root = findViewById(R.id.rootLayout);
+        if (root != null) {
+            root.setOnApplyWindowInsetsListener((v, insets) -> {
+                int navBarBottom = 0;
+                int statusBarTop = 0;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    android.graphics.Insets bars = insets.getInsets(android.view.WindowInsets.Type.systemBars());
+                    navBarBottom = bars.bottom;
+                    statusBarTop = bars.top;
+                } else {
+                    navBarBottom = insets.getSystemWindowInsetBottom();
+                    statusBarTop = insets.getSystemWindowInsetTop();
+                }
+
+                View topBar = findViewById(R.id.topBar);
+                if (topBar != null) {
+                    topBar.setPadding(dpToPx(16), statusBarTop, dpToPx(16), 0);
+                    android.view.ViewGroup.LayoutParams lp = topBar.getLayoutParams();
+                    if (lp != null) {
+                        lp.height = statusBarTop + dpToPx(56);
+                        topBar.setLayoutParams(lp);
+                    }
+                }
+
+                View bottomPanel = findViewById(R.id.bottomControlPanel);
+                if (bottomPanel != null) {
+                    int bottomPad = Math.max(navBarBottom, dpToPx(48)) + dpToPx(14);
+                    bottomPanel.setPadding(dpToPx(12), dpToPx(14), dpToPx(12), bottomPad);
+                }
+                return insets;
+            });
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     private void initViews() {
@@ -240,44 +280,33 @@ public class MainActivity extends Activity {
     private void selectTab(int tab) {
         this.currentTab = tab;
 
-        tabCoolTone.setBackgroundColor(Color.TRANSPARENT);
-        tabFaceSlim.setBackgroundColor(Color.TRANSPARENT);
-        tabChinSlim.setBackgroundColor(Color.TRANSPARENT);
-        tabBodySlim.setBackgroundColor(Color.TRANSPARENT);
+        tabCoolTone.setBackgroundResource(tab == TAB_COOL_TONE ? R.drawable.bg_tab_selected : R.drawable.bg_tab_unselected);
+        tabFaceSlim.setBackgroundResource(tab == TAB_FACE_SLIM ? R.drawable.bg_tab_selected : R.drawable.bg_tab_unselected);
+        tabChinSlim.setBackgroundResource(tab == TAB_CHIN_SLIM ? R.drawable.bg_tab_selected : R.drawable.bg_tab_unselected);
+        tabBodySlim.setBackgroundResource(tab == TAB_BODY_SLIM ? R.drawable.bg_tab_selected : R.drawable.bg_tab_unselected);
 
-        txtTabCoolTone.setTextColor(Color.parseColor("#AAAAAA"));
-        txtTabFaceSlim.setTextColor(Color.parseColor("#AAAAAA"));
-        txtTabChinSlim.setTextColor(Color.parseColor("#AAAAAA"));
-        txtTabBodySlim.setTextColor(Color.parseColor("#AAAAAA"));
-
-        int highlightBg = Color.parseColor("#2C2C2C");
-        int highlightColor = Color.parseColor("#3B82F6");
+        txtTabCoolTone.setTextColor(tab == TAB_COOL_TONE ? Color.WHITE : Color.parseColor("#AAAAAA"));
+        txtTabFaceSlim.setTextColor(tab == TAB_FACE_SLIM ? Color.WHITE : Color.parseColor("#AAAAAA"));
+        txtTabChinSlim.setTextColor(tab == TAB_CHIN_SLIM ? Color.WHITE : Color.parseColor("#AAAAAA"));
+        txtTabBodySlim.setTextColor(tab == TAB_BODY_SLIM ? Color.WHITE : Color.parseColor("#AAAAAA"));
 
         int currentVal = 0;
         String name = "";
 
         switch (tab) {
             case TAB_COOL_TONE:
-                tabCoolTone.setBackgroundColor(highlightBg);
-                txtTabCoolTone.setTextColor(highlightColor);
                 name = "❄️ 쿨톤 피부";
                 currentVal = params.getCoolTone();
                 break;
             case TAB_FACE_SLIM:
-                tabFaceSlim.setBackgroundColor(highlightBg);
-                txtTabFaceSlim.setTextColor(highlightColor);
                 name = "👤 얼굴 크기 축소";
                 currentVal = params.getFaceSlim();
                 break;
             case TAB_CHIN_SLIM:
-                tabChinSlim.setBackgroundColor(highlightBg);
-                txtTabChinSlim.setTextColor(highlightColor);
                 name = "✨ 턱선 V라인";
                 currentVal = params.getChinSlim();
                 break;
             case TAB_BODY_SLIM:
-                tabBodySlim.setBackgroundColor(highlightBg);
-                txtTabBodySlim.setTextColor(highlightColor);
                 name = "🧍 몸매 슬림";
                 currentVal = params.getBodySlim();
                 break;
