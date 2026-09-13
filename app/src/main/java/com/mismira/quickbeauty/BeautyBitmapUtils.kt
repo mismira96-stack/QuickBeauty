@@ -1,4 +1,4 @@
-﻿package com.mismira.quickbeauty
+package com.mismira.quickbeauty
 
 import android.content.ContentValues
 import android.content.Context
@@ -56,7 +56,30 @@ object BeautyBitmapUtils {
     }
 
     fun decodeFullBitmapFromUri(context: Context, uri: Uri): Bitmap? {
-        return decodeSampledBitmapFromUri(context, uri, 4096)
+        val resolver = context.contentResolver
+        // 1. 원본 해상도 100% 무손실 디코딩 (inSampleSize = 1)
+        return try {
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = false
+                inSampleSize = 1
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+            val bitmap = resolver.openInputStream(uri)?.use { input ->
+                BitmapFactory.decodeStream(input, null, options)
+            }
+            if (bitmap != null) {
+                val orientation = getExifOrientation(context, uri)
+                applyExifOrientation(bitmap, orientation)
+            } else {
+                decodeSampledBitmapFromUri(context, uri, 8192)
+            }
+        } catch (oom: OutOfMemoryError) {
+            Log.w(TAG, "원본 100% 로드 중 OOM 발생, 8K(8192px) 초고화질 샘플링으로 대체: ${oom.message}")
+            decodeSampledBitmapFromUri(context, uri, 8192)
+        } catch (t: Throwable) {
+            Log.w(TAG, "원본 로드 예외, 8K 샘플링으로 대체: ${t.message}")
+            decodeSampledBitmapFromUri(context, uri, 8192)
+        }
     }
 
     private fun getExifOrientation(context: Context, uri: Uri): Int {
@@ -96,17 +119,25 @@ object BeautyBitmapUtils {
         }
     }
 
-    fun saveBitmapToGallery(context: Context, bitmap: Bitmap?): Uri? {
+    fun saveBitmapToGallery(context: Context, sourceUri: Uri?, bitmap: Bitmap?): Uri? {
         if (bitmap == null || bitmap.isRecycled) return null
 
+        val isPng = sourceUri?.let { uri ->
+            context.contentResolver.getType(uri)?.contains("png", ignoreCase = true) == true
+        } ?: false
+
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "Beauty_$timeStamp.jpg"
+        val extension = if (isPng) "png" else "jpg"
+        val mimeType = if (isPng) "image/png" else "image/jpeg"
+        val fileName = "Beauty_$timeStamp.$extension"
 
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.MIME_TYPE, mimeType)
             put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
             put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
+            put(MediaStore.Images.Media.WIDTH, bitmap.width)
+            put(MediaStore.Images.Media.HEIGHT, bitmap.height)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/QuickBeauty")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
@@ -118,8 +149,18 @@ object BeautyBitmapUtils {
 
         return try {
             resolver.openOutputStream(imageUri)?.use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 96, out)
+                if (isPng) {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                } else {
+                    // JPEG 품질 98: 눈으로 원본과 구별 불가능한 초고화질 무손실급 저장
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 98, out)
+                }
                 out.flush()
+            }
+
+            // 원본 사진의 EXIF 메타데이터(촬영일시, 카메라 기종, 렌즈 등) 보존 복사
+            if (!isPng && sourceUri != null) {
+                copyExifMetadata(context, sourceUri, imageUri)
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -127,7 +168,7 @@ object BeautyBitmapUtils {
                 values.put(MediaStore.Images.Media.IS_PENDING, 0)
                 resolver.update(imageUri, values, null, null)
             } else {
-                MediaScannerConnection.scanFile(context, arrayOf(imageUri.path), arrayOf("image/jpeg"), null)
+                MediaScannerConnection.scanFile(context, arrayOf(imageUri.path), arrayOf(mimeType), null)
             }
             imageUri
         } catch (t: Throwable) {
@@ -136,6 +177,60 @@ object BeautyBitmapUtils {
                 resolver.delete(imageUri, null, null)
             } catch (_: Throwable) {}
             null
+        }
+    }
+
+    // 하위 호환용 오버로드
+    fun saveBitmapToGallery(context: Context, bitmap: Bitmap?): Uri? {
+        return saveBitmapToGallery(context, null, bitmap)
+    }
+
+    private fun copyExifMetadata(context: Context, sourceUri: Uri, targetUri: Uri) {
+        try {
+            val resolver = context.contentResolver
+            val srcExif = resolver.openInputStream(sourceUri)?.use { input ->
+                ExifInterface(input)
+            } ?: return
+
+            resolver.openFileDescriptor(targetUri, "rw")?.use { pfd ->
+                val dstExif = ExifInterface(pfd.fileDescriptor)
+
+                val tagsToCopy = arrayOf(
+                    ExifInterface.TAG_DATETIME,
+                    ExifInterface.TAG_DATETIME_ORIGINAL,
+                    ExifInterface.TAG_DATETIME_DIGITIZED,
+                    ExifInterface.TAG_MAKE,
+                    ExifInterface.TAG_MODEL,
+                    ExifInterface.TAG_F_NUMBER,
+                    ExifInterface.TAG_EXPOSURE_TIME,
+                    ExifInterface.TAG_ISO_SPEED_RATINGS,
+                    ExifInterface.TAG_FOCAL_LENGTH,
+                    ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM,
+                    ExifInterface.TAG_WHITE_BALANCE,
+                    ExifInterface.TAG_FLASH,
+                    ExifInterface.TAG_COLOR_SPACE,
+                    ExifInterface.TAG_GPS_LATITUDE,
+                    ExifInterface.TAG_GPS_LATITUDE_REF,
+                    ExifInterface.TAG_GPS_LONGITUDE,
+                    ExifInterface.TAG_GPS_LONGITUDE_REF,
+                    ExifInterface.TAG_GPS_ALTITUDE,
+                    ExifInterface.TAG_GPS_ALTITUDE_REF,
+                    ExifInterface.TAG_GPS_TIMESTAMP,
+                    ExifInterface.TAG_GPS_DATESTAMP
+                )
+
+                for (tag in tagsToCopy) {
+                    val value = srcExif.getAttribute(tag)
+                    if (value != null) {
+                        dstExif.setAttribute(tag, value)
+                    }
+                }
+                // 이미지는 디코딩 시 정방향으로 회전 완료되었으므로 ORIENTATION_NORMAL로 고정
+                dstExif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
+                dstExif.saveAttributes()
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "EXIF 메타데이터 복사 건너뜀: ${t.message}")
         }
     }
 }

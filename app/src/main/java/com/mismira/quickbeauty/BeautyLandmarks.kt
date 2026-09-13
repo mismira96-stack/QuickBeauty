@@ -1,4 +1,4 @@
-﻿package com.mismira.quickbeauty
+package com.mismira.quickbeauty
 
 import kotlin.math.max
 
@@ -44,6 +44,8 @@ class BeautyLandmarks(
     val rightJaw = Point()
     val leftCheek = Point()
     val rightCheek = Point()
+    val mouthPoint = Point()
+    val noseBase = Point()
 
     // 신체 정보
     var hasBody: Boolean = false
@@ -72,6 +74,8 @@ class BeautyLandmarks(
             rightJaw.set(fcX + fw * 0.38f, fcY + fh * 0.25f)
             leftCheek.set(fcX - fw * 0.35f, fcY)
             rightCheek.set(fcX + fw * 0.35f, fcY)
+            mouthPoint.set(fcX, fcY + fh * 0.28f)
+            noseBase.set(fcX, fcY + fh * 0.08f)
             hasFace = true
         }
 
@@ -108,6 +112,8 @@ class BeautyLandmarks(
         res.rightJaw.set(rightJaw.x * sx, rightJaw.y * sy)
         res.leftCheek.set(leftCheek.x * sx, leftCheek.y * sy)
         res.rightCheek.set(rightCheek.x * sx, rightCheek.y * sy)
+        res.mouthPoint.set(mouthPoint.x * sx, mouthPoint.y * sy)
+        res.noseBase.set(noseBase.x * sx, noseBase.y * sy)
 
         res.hasBody = this.hasBody
         res.bodyBounds.set(bodyBounds.left * sx, bodyBounds.top * sy, bodyBounds.right * sx, bodyBounds.bottom * sy)

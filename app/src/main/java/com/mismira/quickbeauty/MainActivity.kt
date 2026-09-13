@@ -1,6 +1,7 @@
-﻿package com.mismira.quickbeauty
+package com.mismira.quickbeauty
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -33,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAB_COOL_TONE = 0
         private const val TAB_FACE_SLIM = 1
-        private const val TAB_CHIN_SLIM = 2
+        private const val TAB_FACE_LENGTH = 2
         private const val TAB_BODY_SLIM = 3
     }
 
@@ -41,30 +42,27 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var previewView: BeautyPreviewView
     private lateinit var badgeOriginal: TextView
-    private lateinit var hintCompare: TextView
-    private lateinit var btnCompareTop: TextView
+    private lateinit var hintCoachMark: TextView
     private lateinit var progressBar: ProgressBar
 
     private lateinit var topBar: View
     private lateinit var bottomControlPanel: View
-    private lateinit var txtParamName: TextView
+    private lateinit var btnReset: View
     private lateinit var txtParamValue: TextView
     private lateinit var seekBarAdjust: SeekBar
 
-    private lateinit var tabCoolTone: View
-    private lateinit var tabFaceSlim: View
-    private lateinit var tabChinSlim: View
-    private lateinit var tabBodySlim: View
-    private lateinit var txtTabCoolTone: TextView
-    private lateinit var txtTabFaceSlim: TextView
-    private lateinit var txtTabChinSlim: TextView
-    private lateinit var txtTabBodySlim: TextView
+    private lateinit var tabCoolTone: TextView
+    private lateinit var tabFaceSlim: TextView
+    private lateinit var tabFaceLength: TextView
+    private lateinit var tabBodySlim: TextView
 
     private var targetImageUri: Uri? = null
     private var previewBitmap: Bitmap? = null
     private var detectedLandmarks: BeautyLandmarks? = null
     private val params = BeautyAdjustParams()
     private var detector: FaceBodyDetector? = null
+
+    private val prefs by lazy { getSharedPreferences("quick_beauty_prefs", Context.MODE_PRIVATE) }
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data?.data != null) {
@@ -83,6 +81,7 @@ class MainActivity : AppCompatActivity() {
         applyWindowInsets()
         detector = FaceBodyDetector()
 
+        loadSavedPreferences()
         handleIntent(intent)
     }
 
@@ -91,44 +90,26 @@ class MainActivity : AppCompatActivity() {
         bottomControlPanel = findViewById(R.id.bottomControlPanel)
         previewView = findViewById(R.id.previewView)
         badgeOriginal = findViewById(R.id.badgeOriginal)
-        hintCompare = findViewById(R.id.hintCompare)
-        btnCompareTop = findViewById(R.id.btnCompareTop)
+        hintCoachMark = findViewById(R.id.hintCoachMark)
         progressBar = findViewById(R.id.progressBar)
 
-        txtParamName = findViewById(R.id.txtParamName)
+        btnReset = findViewById(R.id.btnReset)
         txtParamValue = findViewById(R.id.txtParamValue)
         seekBarAdjust = findViewById(R.id.seekBarAdjust)
 
         tabCoolTone = findViewById(R.id.tabCoolTone)
         tabFaceSlim = findViewById(R.id.tabFaceSlim)
-        tabChinSlim = findViewById(R.id.tabChinSlim)
+        tabFaceLength = findViewById(R.id.tabChinSlim)
         tabBodySlim = findViewById(R.id.tabBodySlim)
 
-        txtTabCoolTone = findViewById(R.id.txtTabCoolTone)
-        txtTabFaceSlim = findViewById(R.id.txtTabFaceSlim)
-        txtTabChinSlim = findViewById(R.id.txtTabChinSlim)
-        txtTabBodySlim = findViewById(R.id.txtTabBodySlim)
-
         findViewById<View>(R.id.btnClose).setOnClickListener { finish() }
-        findViewById<View>(R.id.btnReset).setOnClickListener { resetAll() }
+        btnReset.setOnClickListener { resetAll() }
         findViewById<View>(R.id.btnSave).setOnClickListener { saveProcessedImage() }
 
-        val clickCoolTone = View.OnClickListener { selectTab(TAB_COOL_TONE) }
-        val clickFaceSlim = View.OnClickListener { selectTab(TAB_FACE_SLIM) }
-        val clickChinSlim = View.OnClickListener { selectTab(TAB_CHIN_SLIM) }
-        val clickBodySlim = View.OnClickListener { selectTab(TAB_BODY_SLIM) }
-
-        tabCoolTone.setOnClickListener(clickCoolTone)
-        txtTabCoolTone.setOnClickListener(clickCoolTone)
-
-        tabFaceSlim.setOnClickListener(clickFaceSlim)
-        txtTabFaceSlim.setOnClickListener(clickFaceSlim)
-
-        tabChinSlim.setOnClickListener(clickChinSlim)
-        txtTabChinSlim.setOnClickListener(clickChinSlim)
-
-        tabBodySlim.setOnClickListener(clickBodySlim)
-        txtTabBodySlim.setOnClickListener(clickBodySlim)
+        tabCoolTone.setOnClickListener { selectTab(TAB_COOL_TONE) }
+        tabFaceSlim.setOnClickListener { selectTab(TAB_FACE_SLIM) }
+        tabFaceLength.setOnClickListener { selectTab(TAB_FACE_LENGTH) }
+        tabBodySlim.setOnClickListener { selectTab(TAB_BODY_SLIM) }
 
         seekBarAdjust.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -145,13 +126,11 @@ class MainActivity : AppCompatActivity() {
                 MotionEvent.ACTION_DOWN -> {
                     previewView.setShowOriginal(true)
                     badgeOriginal.visibility = View.VISIBLE
-                    hintCompare.visibility = View.GONE
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     previewView.setShowOriginal(false)
                     badgeOriginal.visibility = View.GONE
-                    hintCompare.visibility = View.VISIBLE
                     true
                 }
                 else -> false
@@ -160,9 +139,9 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.previewContainer).setOnTouchListener(touchCompareListener)
         previewView.setOnTouchListener(touchCompareListener)
-        btnCompareTop.setOnTouchListener(touchCompareListener)
 
         selectTab(TAB_COOL_TONE)
+        updateResetButton()
     }
 
     private fun applyWindowInsets() {
@@ -172,18 +151,56 @@ class MainActivity : AppCompatActivity() {
 
             topBar.updatePadding(left = dpToPx(16), top = insets.top, right = dpToPx(16), bottom = 0)
             topBar.updateLayoutParams {
-                height = insets.top + dpToPx(60)
+                height = insets.top + dpToPx(56)
             }
 
-            val bottomPadding = max(insets.bottom, dpToPx(52)) + dpToPx(16)
+            // 하단 패널 2단 초슬림화: 태스크바 및 제스처 바 여백 확보
+            val bottomPadding = max(insets.bottom, dpToPx(48)) + dpToPx(8)
             bottomControlPanel.updatePadding(
-                left = dpToPx(16),
+                left = dpToPx(20),
                 top = dpToPx(10),
-                right = dpToPx(16),
+                right = dpToPx(20),
                 bottom = bottomPadding
             )
 
             windowInsets
+        }
+    }
+
+    private fun loadSavedPreferences() {
+        val c = prefs.getInt("pref_cool_tone", 0)
+        val f = prefs.getInt("pref_face_slim", 0)
+        val fl = prefs.getInt("pref_face_length", prefs.getInt("pref_chin_slim", 0))
+        val b = prefs.getInt("pref_body_slim", 0)
+        params.set(c, f, fl, b)
+        updateResetButton()
+    }
+
+    private fun savePreferences() {
+        prefs.edit()
+            .putInt("pref_cool_tone", params.coolTone)
+            .putInt("pref_face_slim", params.faceSlim)
+            .putInt("pref_face_length", params.faceLength)
+            .putInt("pref_chin_slim", params.faceLength)
+            .putInt("pref_body_slim", params.bodySlim)
+            .apply()
+    }
+
+    private fun showCoachMarkIfNeeded() {
+        val shownCount = prefs.getInt("coach_mark_shown_count", 0)
+        if (shownCount < 2) {
+            hintCoachMark.alpha = 1f
+            hintCoachMark.visibility = View.VISIBLE
+            hintCoachMark.postDelayed({
+                hintCoachMark.animate()
+                    .alpha(0f)
+                    .setDuration(400)
+                    .withEndAction { hintCoachMark.visibility = View.GONE }
+                    .start()
+            }, 2500)
+            prefs.edit().putInt("coach_mark_shown_count", shownCount + 1).apply()
+        } else {
+            hintCoachMark.visibility = View.GONE
         }
     }
 
@@ -278,6 +295,7 @@ class MainActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
                 previewView.setSource(bmp, landmarks)
                 previewView.setParams(params)
+                showCoachMarkIfNeeded()
             }
         }
     }
@@ -285,36 +303,21 @@ class MainActivity : AppCompatActivity() {
     private fun selectTab(tab: Int) {
         this.currentTab = tab
 
-        val activeBg = R.drawable.bg_tab_selected
-        val inactiveBg = R.drawable.bg_tab_unselected
-
-        tabCoolTone.setBackgroundResource(if (tab == TAB_COOL_TONE) activeBg else inactiveBg)
-        tabFaceSlim.setBackgroundResource(if (tab == TAB_FACE_SLIM) activeBg else inactiveBg)
-        tabChinSlim.setBackgroundResource(if (tab == TAB_CHIN_SLIM) activeBg else inactiveBg)
-        tabBodySlim.setBackgroundResource(if (tab == TAB_BODY_SLIM) activeBg else inactiveBg)
-
-        val activeColor = Color.WHITE
-        val inactiveColor = Color.parseColor("#94A3B8")
-
-        txtTabCoolTone.setTextColor(if (tab == TAB_COOL_TONE) activeColor else inactiveColor)
-        txtTabFaceSlim.setTextColor(if (tab == TAB_FACE_SLIM) activeColor else inactiveColor)
-        txtTabChinSlim.setTextColor(if (tab == TAB_CHIN_SLIM) activeColor else inactiveColor)
-        txtTabBodySlim.setTextColor(if (tab == TAB_BODY_SLIM) activeColor else inactiveColor)
-
-        txtTabCoolTone.typeface = if (tab == TAB_COOL_TONE) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        txtTabFaceSlim.typeface = if (tab == TAB_FACE_SLIM) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        txtTabChinSlim.typeface = if (tab == TAB_CHIN_SLIM) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        txtTabBodySlim.typeface = if (tab == TAB_BODY_SLIM) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-
-        val (name, currentVal) = when (tab) {
-            TAB_COOL_TONE -> "❄️ 쿨톤 피부" to params.coolTone
-            TAB_FACE_SLIM -> "👤 얼굴 크기 축소" to params.faceSlim
-            TAB_CHIN_SLIM -> "✨ 턱선 V라인" to params.chinSlim
-            TAB_BODY_SLIM -> "🧍 몸매 슬림" to params.bodySlim
-            else -> "❄️ 쿨톤 피부" to params.coolTone
+        val tabs = listOf(tabCoolTone, tabFaceSlim, tabFaceLength, tabBodySlim)
+        tabs.forEachIndexed { index, tv ->
+            val isSelected = index == tab
+            tv.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#71717A"))
+            tv.typeface = if (isSelected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
 
-        txtParamName.text = name
+        val currentVal = when (tab) {
+            TAB_COOL_TONE -> params.coolTone
+            TAB_FACE_SLIM -> params.faceSlim
+            TAB_FACE_LENGTH -> params.faceLength
+            TAB_BODY_SLIM -> params.bodySlim
+            else -> params.coolTone
+        }
+
         txtParamValue.text = currentVal.toString()
         seekBarAdjust.progress = currentVal
     }
@@ -324,14 +327,22 @@ class MainActivity : AppCompatActivity() {
         when (currentTab) {
             TAB_COOL_TONE -> params.coolTone = progress
             TAB_FACE_SLIM -> params.faceSlim = progress
-            TAB_CHIN_SLIM -> params.chinSlim = progress
+            TAB_FACE_LENGTH -> params.faceLength = progress
             TAB_BODY_SLIM -> params.bodySlim = progress
         }
+        savePreferences()
+        updateResetButton()
         previewView.setParams(params)
+    }
+
+    private fun updateResetButton() {
+        btnReset.visibility = if (params.hasAnyEffect()) View.VISIBLE else View.GONE
     }
 
     private fun resetAll() {
         params.reset()
+        prefs.edit().clear().apply()
+        updateResetButton()
         selectTab(currentTab)
         previewView.setParams(params)
         Toast.makeText(this, "보정 수치가 초기화되었습니다.", Toast.LENGTH_SHORT).show()
@@ -346,14 +357,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         progressBar.visibility = View.VISIBLE
-        Toast.makeText(this, "고화질로 보정하여 저장 중...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "원본 초고화질로 보정하여 저장 중...", Toast.LENGTH_SHORT).show()
 
         lifecycleScope.launch {
             val savedUri = withContext(Dispatchers.IO) {
                 try {
                     val fullBitmap = BeautyBitmapUtils.decodeFullBitmapFromUri(this@MainActivity, uri) ?: previewBitmap
                     val processed = BeautyFilterEngine.process(fullBitmap, landmarks, params)
-                    val resultUri = BeautyBitmapUtils.saveBitmapToGallery(this@MainActivity, processed)
+                    val resultUri = BeautyBitmapUtils.saveBitmapToGallery(this@MainActivity, uri, processed)
 
                     if (fullBitmap != previewBitmap && fullBitmap?.isRecycled == false) {
                         fullBitmap.recycle()
@@ -370,7 +381,7 @@ class MainActivity : AppCompatActivity() {
 
             progressBar.visibility = View.GONE
             if (savedUri != null) {
-                Toast.makeText(this@MainActivity, "갤러리에 저장되었습니다! ✨", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "원본 고화질 그대로 저장되었습니다! ✨", Toast.LENGTH_LONG).show()
                 finish()
             } else {
                 Toast.makeText(this@MainActivity, "저장에 실패했습니다.", Toast.LENGTH_SHORT).show()

@@ -1,4 +1,4 @@
-﻿package com.mismira.quickbeauty
+package com.mismira.quickbeauty
 
 import org.junit.Assert
 import org.junit.Test
@@ -100,5 +100,68 @@ class BeautyFilterEngineTest {
             }
         }
         Assert.assertTrue("Face slim should produce vertex displacement", hasDisplacement)
+    }
+
+    @Test
+    fun testComputeWarpedVerticesWithFaceLengthLiftsChinUpward() {
+        val w = 1000
+        val h = 1000
+        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+
+        val params = BeautyAdjustParams(0, 0, 100, 0)
+        val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(0, 0, 0, 0))
+
+        // 턱 끝 좌표 근처의 버텍스는 위쪽으로 이동(Y값 감소)해야 함
+        var chinLiftDetected = false
+        val chinY = lm.chinPoint.y
+        val chinX = lm.chinPoint.x
+
+        for (i in warped.indices step 2) {
+            val origX = original[i]
+            val origY = original[i + 1]
+            if (kotlin.math.abs(origX - chinX) < 50f && kotlin.math.abs(origY - chinY) < 50f) {
+                val dy = warped[i + 1] - origY
+                if (dy < -1.0f) { // Y 감소 = 위로 리프팅
+                    chinLiftDetected = true
+                    break
+                }
+            }
+        }
+        Assert.assertTrue("Face length adjustment should lift chin upward", chinLiftDetected)
+    }
+
+    @Test
+    fun testMonotonicityNoMeshInversion() {
+        val w = 1000
+        val h = 1000
+        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+        val maxParams = BeautyAdjustParams(100, 100, 100, 100)
+
+        val verts = BeautyFilterEngine.computeWarpedVertices(w, h, lm, maxParams)
+        val meshW = BeautyFilterEngine.MESH_W
+        val meshH = BeautyFilterEngine.MESH_H
+
+        // 모든 가로 행에서 X 좌표가 엄격하게 증가해야 함 (메쉬 뒤집힘 없음)
+        for (r in 0..meshH) {
+            for (c in 0 until meshW) {
+                val idx1 = (r * (meshW + 1) + c) * 2
+                val idx2 = (r * (meshW + 1) + (c + 1)) * 2
+                val x1 = verts[idx1]
+                val x2 = verts[idx2]
+                Assert.assertTrue("Row $r, col $c: x2 ($x2) must be strictly greater than x1 ($x1)", x2 > x1)
+            }
+        }
+
+        // 모든 세로 열에서 Y 좌표가 엄격하게 증가해야 함 (메쉬 뒤집힘 없음)
+        for (c in 0..meshW) {
+            for (r in 0 until meshH) {
+                val idx1 = (r * (meshW + 1) + c) * 2 + 1
+                val idx2 = ((r + 1) * (meshW + 1) + c) * 2 + 1
+                val y1 = verts[idx1]
+                val y2 = verts[idx2]
+                Assert.assertTrue("Col $c, row $r: y2 ($y2) must be strictly greater than y1 ($y1)", y2 > y1)
+            }
+        }
     }
 }

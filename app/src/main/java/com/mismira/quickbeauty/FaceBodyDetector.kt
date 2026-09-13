@@ -1,4 +1,4 @@
-﻿package com.mismira.quickbeauty
+package com.mismira.quickbeauty
 
 import android.graphics.Bitmap
 import android.graphics.PointF
@@ -158,6 +158,20 @@ class FaceBodyDetector {
             landmarks.rightCheek.set(rightCheek.position.x, rightCheek.position.y)
         } else {
             landmarks.rightCheek.set(box.right - box.width() * 0.2f, box.exactCenterY())
+        }
+
+        val mouthBottom = face.getLandmark(FaceLandmark.MOUTH_BOTTOM)
+        if (mouthBottom != null) {
+            landmarks.mouthPoint.set(mouthBottom.position.x, mouthBottom.position.y)
+        } else {
+            landmarks.mouthPoint.set(box.exactCenterX(), box.top + box.height() * 0.72f)
+        }
+
+        val noseBase = face.getLandmark(FaceLandmark.NOSE_BASE)
+        if (noseBase != null) {
+            landmarks.noseBase.set(noseBase.position.x, noseBase.position.y)
+        } else {
+            landmarks.noseBase.set(box.exactCenterX(), box.top + box.height() * 0.55f)
         }
     }
 
