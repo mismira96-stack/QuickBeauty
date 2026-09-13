@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
@@ -12,6 +13,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.view.MotionEvent
 import android.view.View
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
@@ -53,12 +55,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtParamValue: TextView
     private lateinit var seekBarAdjust: SeekBar
 
-    private lateinit var tabCoolTone: TextView
-    private lateinit var tabFaceSize: TextView
-    private lateinit var tabChinSlim: TextView
-    private lateinit var tabFaceLength: TextView
-    private lateinit var tabShoulder: TextView
-    private lateinit var tabBodySlim: TextView
+    private lateinit var tabContainers: List<View>
+    private lateinit var tabIconBgs: List<View>
+    private lateinit var tabIcons: List<ImageView>
+    private lateinit var tabLabels: List<TextView>
 
     private var targetImageUri: Uri? = null
     private var previewBitmap: Bitmap? = null
@@ -101,23 +101,46 @@ class MainActivity : AppCompatActivity() {
         txtParamValue = findViewById(R.id.txtParamValue)
         seekBarAdjust = findViewById(R.id.seekBarAdjust)
 
-        tabCoolTone = findViewById(R.id.tabCoolTone)
-        tabFaceSize = findViewById(R.id.tabFaceSize)
-        tabChinSlim = findViewById(R.id.tabChinSlim)
-        tabFaceLength = findViewById(R.id.tabFaceLength)
-        tabShoulder = findViewById(R.id.tabShoulder)
-        tabBodySlim = findViewById(R.id.tabBodySlim)
+        tabContainers = listOf(
+            findViewById(R.id.tabCoolTone),
+            findViewById(R.id.tabFaceSize),
+            findViewById(R.id.tabChinSlim),
+            findViewById(R.id.tabFaceLength),
+            findViewById(R.id.tabShoulder),
+            findViewById(R.id.tabBodySlim)
+        )
+        tabIconBgs = listOf(
+            findViewById(R.id.iconBgCoolTone),
+            findViewById(R.id.iconBgFaceSize),
+            findViewById(R.id.iconBgChinSlim),
+            findViewById(R.id.iconBgFaceLength),
+            findViewById(R.id.iconBgShoulder),
+            findViewById(R.id.iconBgBodySlim)
+        )
+        tabIcons = listOf(
+            findViewById(R.id.iconCoolTone),
+            findViewById(R.id.iconFaceSize),
+            findViewById(R.id.iconChinSlim),
+            findViewById(R.id.iconFaceLength),
+            findViewById(R.id.iconShoulder),
+            findViewById(R.id.iconBodySlim)
+        )
+        tabLabels = listOf(
+            findViewById(R.id.txtTabCoolTone),
+            findViewById(R.id.txtTabFaceSize),
+            findViewById(R.id.txtTabChinSlim),
+            findViewById(R.id.txtTabFaceLength),
+            findViewById(R.id.txtTabShoulder),
+            findViewById(R.id.txtTabBodySlim)
+        )
 
         findViewById<View>(R.id.btnClose).setOnClickListener { finish() }
         btnReset.setOnClickListener { resetAll() }
         findViewById<View>(R.id.btnSave).setOnClickListener { saveProcessedImage() }
 
-        tabCoolTone.setOnClickListener { selectTab(TAB_COOL_TONE) }
-        tabFaceSize.setOnClickListener { selectTab(TAB_FACE_SIZE) }
-        tabChinSlim.setOnClickListener { selectTab(TAB_CHIN_SLIM) }
-        tabFaceLength.setOnClickListener { selectTab(TAB_FACE_LENGTH) }
-        tabShoulder.setOnClickListener { selectTab(TAB_SHOULDER) }
-        tabBodySlim.setOnClickListener { selectTab(TAB_BODY_SLIM) }
+        tabContainers.forEachIndexed { index, container ->
+            container.setOnClickListener { selectTab(index) }
+        }
 
         seekBarAdjust.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -315,11 +338,22 @@ class MainActivity : AppCompatActivity() {
     private fun selectTab(tab: Int) {
         this.currentTab = tab
 
-        val tabs = listOf(tabCoolTone, tabFaceSize, tabChinSlim, tabFaceLength, tabShoulder, tabBodySlim)
-        tabs.forEachIndexed { index, tv ->
-            val isSelected = index == tab
-            tv.setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#71717A"))
-            tv.typeface = if (isSelected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        for (i in tabContainers.indices) {
+            val isSelected = (i == tab)
+            tabIconBgs[i].setBackgroundResource(
+                if (isSelected) R.drawable.bg_tab_circle_selected
+                else R.drawable.bg_tab_circle_unselected
+            )
+            tabIcons[i].setColorFilter(
+                if (isSelected) Color.WHITE
+                else Color.parseColor("#71717A"),
+                PorterDuff.Mode.SRC_IN
+            )
+            tabLabels[i].setTextColor(
+                if (isSelected) Color.WHITE
+                else Color.parseColor("#71717A")
+            )
+            tabLabels[i].typeface = if (isSelected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
 
         val currentVal = when (tab) {

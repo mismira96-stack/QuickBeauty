@@ -148,103 +148,253 @@
         android:paddingBottom="16dp"
         android:paddingHorizontal="14dp">
 
-        <!-- 1단: 6개 탭 (쿨톤, 작은얼굴, 턱선, 얼굴길이, 어깨, 몸매) -->
+        <!-- 1단: 6개 원형 아이콘 탭 (쿨톤, 작은얼굴, 턱선, 얼굴길이, 어깨, 몸매) -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="38dp"
+            android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal">
 
-            <TextView
+            <!-- 1. 쿨톤 -->
+            <LinearLayout
                 android:id="@+id/tabCoolTone"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="쿨톤"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:singleLine="true"
-                android:includeFontPadding="false"
+                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:background="?android:attr/selectableItemBackgroundBorderless">
 
-            <TextView
+                <FrameLayout
+                    android:id="@+id/iconBgCoolTone"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tab_circle_selected">
+
+                    <ImageView
+                        android:id="@+id/iconCoolTone"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tab_cool_tone"
+                        android:contentDescription="쿨톤" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/txtTabCoolTone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="쿨톤"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:singleLine="true"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- 2. 작은얼굴 -->
+            <LinearLayout
                 android:id="@+id/tabFaceSize"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1.35"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:gravity="center"
-                android:text="작은얼굴"
-                android:textSize="12sp"
-                android:textColor="#71717A"
-                android:singleLine="true"
-                android:includeFontPadding="false"
+                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:background="?android:attr/selectableItemBackgroundBorderless">
 
-            <TextView
+                <FrameLayout
+                    android:id="@+id/iconBgFaceSize"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tab_circle_unselected">
+
+                    <ImageView
+                        android:id="@+id/iconFaceSize"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tab_face_size"
+                        android:contentDescription="작은얼굴" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/txtTabFaceSize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="작은얼굴"
+                    android:textSize="11sp"
+                    android:textColor="#71717A"
+                    android:singleLine="true"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- 3. 턱선 -->
+            <LinearLayout
                 android:id="@+id/tabChinSlim"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="턱선"
-                android:textSize="12sp"
-                android:textColor="#71717A"
-                android:singleLine="true"
-                android:includeFontPadding="false"
+                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:background="?android:attr/selectableItemBackgroundBorderless">
 
-            <TextView
+                <FrameLayout
+                    android:id="@+id/iconBgChinSlim"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tab_circle_unselected">
+
+                    <ImageView
+                        android:id="@+id/iconChinSlim"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tab_chin_slim"
+                        android:contentDescription="턱선" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/txtTabChinSlim"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="턱선"
+                    android:textSize="11sp"
+                    android:textColor="#71717A"
+                    android:singleLine="true"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- 4. 얼굴길이 -->
+            <LinearLayout
                 android:id="@+id/tabFaceLength"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1.35"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:gravity="center"
-                android:text="얼굴길이"
-                android:textSize="12sp"
-                android:textColor="#71717A"
-                android:singleLine="true"
-                android:includeFontPadding="false"
+                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:background="?android:attr/selectableItemBackgroundBorderless">
 
-            <TextView
+                <FrameLayout
+                    android:id="@+id/iconBgFaceLength"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tab_circle_unselected">
+
+                    <ImageView
+                        android:id="@+id/iconFaceLength"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tab_face_length"
+                        android:contentDescription="얼굴길이" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/txtTabFaceLength"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="얼굴길이"
+                    android:textSize="11sp"
+                    android:textColor="#71717A"
+                    android:singleLine="true"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- 5. 어깨 -->
+            <LinearLayout
                 android:id="@+id/tabShoulder"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="어깨"
-                android:textSize="12sp"
-                android:textColor="#71717A"
-                android:singleLine="true"
-                android:includeFontPadding="false"
+                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:background="?android:attr/selectableItemBackgroundBorderless">
 
-            <TextView
+                <FrameLayout
+                    android:id="@+id/iconBgShoulder"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tab_circle_unselected">
+
+                    <ImageView
+                        android:id="@+id/iconShoulder"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tab_shoulder"
+                        android:contentDescription="어깨" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/txtTabShoulder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="어깨"
+                    android:textSize="11sp"
+                    android:textColor="#71717A"
+                    android:singleLine="true"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- 6. 몸매 -->
+            <LinearLayout
                 android:id="@+id/tabBodySlim"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="몸매"
-                android:textSize="12sp"
-                android:textColor="#71717A"
-                android:singleLine="true"
-                android:includeFontPadding="false"
+                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless" />
+                android:background="?android:attr/selectableItemBackgroundBorderless">
+
+                <FrameLayout
+                    android:id="@+id/iconBgBodySlim"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_tab_circle_unselected">
+
+                    <ImageView
+                        android:id="@+id/iconBodySlim"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tab_body_slim"
+                        android:contentDescription="몸매" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/txtTabBodySlim"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="몸매"
+                    android:textSize="11sp"
+                    android:textColor="#71717A"
+                    android:singleLine="true"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- 2단: 슬라이더 + 우측 작은 숫자 (나란히 배치) -->
