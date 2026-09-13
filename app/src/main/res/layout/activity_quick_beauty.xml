@@ -1,74 +1,106 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    android:background="#121212">
+    android:background="#0C0C10">
 
-    <!-- 상단 툴바 -->
+    <!-- 상단 헤더 바 -->
     <RelativeLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="60dp"
         android:paddingHorizontal="16dp"
-        android:background="#1A1A1A">
+        android:background="@drawable/bg_top_bar">
 
-        <TextView
+        <!-- 닫기 버튼 (원형 다크 버튼) -->
+        <FrameLayout
             android:id="@+id/btnClose"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="✕"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:paddingHorizontal="8dp" />
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_button"
+            android:clickable="true"
+            android:focusable="true">
 
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_close_vector"
+                android:contentDescription="닫기" />
+        </FrameLayout>
+
+        <!-- 타이틀 / 브랜딩 -->
         <TextView
             android:id="@+id/txtTitle"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_toEndOf="@id/btnClose"
-            android:gravity="center"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="12dp"
             android:text="@string/app_name"
             android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:paddingStart="8dp" />
+            android:textSize="17sp"
+            android:textStyle="bold" />
 
+        <!-- 우측 액션 버튼들 (초기화, 원본비교, 저장) -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <!-- 초기화 버튼 -->
             <TextView
                 android:id="@+id/btnReset"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="초기화"
-                android:textColor="#AAAAAA"
-                android:textSize="14sp"
-                android:padding="8dp"
-                android:background="?android:attr/selectableItemBackground" />
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:background="@drawable/bg_pill_button"
+                android:paddingHorizontal="12dp"
+                android:text="↺ 초기화"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:clickable="true"
+                android:focusable="true" />
 
+            <!-- 상단 원본 비교 버튼 (누르고 있으면 원본) -->
+            <TextView
+                android:id="@+id/btnCompareTop"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:gravity="center"
+                android:background="@drawable/bg_pill_button"
+                android:paddingHorizontal="12dp"
+                android:text="👁️ 원본"
+                android:textColor="#CBD5E1"
+                android:textSize="13sp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- 저장 버튼 (그라데이션 캡슐) -->
             <TextView
                 android:id="@+id/btnSave"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
                 android:layout_marginStart="8dp"
+                android:gravity="center"
+                android:background="@drawable/bg_save_btn"
+                android:paddingHorizontal="18dp"
                 android:text="저장"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:background="#3B82F6"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp" />
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- 프리뷰 영역 -->
+    <!-- 프리뷰 컨테이너 -->
     <FrameLayout
         android:id="@+id/previewContainer"
         android:layout_width="match_parent"
@@ -81,72 +113,87 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <!-- 원본 보기 뱃지 -->
+        <!-- 원본 비교 중 프로스트 뱃지 (상단 중앙) -->
         <TextView
             android:id="@+id/badgeOriginal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="16dp"
-            android:background="#80000000"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="6dp"
-            android:text="원본 비교 중"
-            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_frosted_badge"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:text="👁️ 원본 비교 중"
+            android:textColor="#38BDF8"
             android:textSize="13sp"
+            android:textStyle="bold"
             android:visibility="gone" />
 
-        <!-- 화면 길게 누르기 안내 힌트 -->
+        <!-- 비교 안내 힌트 칩 (하단 중앙) -->
         <TextView
             android:id="@+id/hintCompare"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="12dp"
-            android:background="#60000000"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:text="화면을 길게 누르면 원본과 비교할 수 있어요"
-            android:textColor="#CCCCCC"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_frosted_badge"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:text="👆 화면을 누르고 있으면 원본과 비교됩니다"
+            android:textColor="#CBD5E1"
             android:textSize="12sp" />
 
-        <!-- 로딩 바 -->
+        <!-- 로딩 인디케이터 -->
         <ProgressBar
             android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_gravity="center"
+            android:indeterminateTint="#38BDF8"
             android:visibility="gone" />
     </FrameLayout>
 
-    <!-- 하단 조절 패널 (상단에 탭 배치 -> 슬라이더 -> 하단 태스크바 안전 패딩) -->
+    <!-- 하단 조절 패널 (바텀시트 스타일 + 상단 탭 + 커스텀 슬라이더 + 태스크바 완벽 회피) -->
     <LinearLayout
         android:id="@+id/bottomControlPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="#1E1E1E"
+        android:background="@drawable/bg_bottom_panel"
         android:orientation="vertical"
-        android:paddingTop="14dp"
+        android:elevation="12dp"
+        android:paddingTop="8dp"
         android:paddingBottom="24dp"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="16dp">
 
-        <!-- 1. 4개 기능 탭 (패널 상단에 배치하여 하단 태스크바 간섭 완전 차단) -->
+        <!-- 시트 드래그 핸들 (미학적 디자인) -->
+        <View
+            android:layout_width="36dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_tab_container" />
+
+        <!-- 1. 4개 기능 탭 (상단에 세그먼트 컨트롤 형태로 배치) -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="46dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_tab_container"
+            android:padding="4dp"
             android:orientation="horizontal">
 
+            <!-- 쿨톤 -->
             <LinearLayout
                 android:id="@+id/tabCoolTone"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="3dp"
                 android:gravity="center"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="@drawable/bg_tab_selected">
+
                 <TextView
                     android:id="@+id/txtTabCoolTone"
                     android:layout_width="wrap_content"
@@ -157,60 +204,63 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
+            <!-- 얼굴축소 -->
             <LinearLayout
                 android:id="@+id/tabFaceSlim"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="3dp"
                 android:gravity="center"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="@drawable/bg_tab_unselected">
+
                 <TextView
                     android:id="@+id/txtTabFaceSlim"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="👤 얼굴축소"
-                    android:textColor="#AAAAAA"
+                    android:text="👤 축소"
+                    android:textColor="#94A3B8"
                     android:textSize="13sp" />
             </LinearLayout>
 
+            <!-- 턱선 -->
             <LinearLayout
                 android:id="@+id/tabChinSlim"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="3dp"
                 android:gravity="center"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="@drawable/bg_tab_unselected">
+
                 <TextView
                     android:id="@+id/txtTabChinSlim"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="✨ 턱선"
-                    android:textColor="#AAAAAA"
+                    android:textColor="#94A3B8"
                     android:textSize="13sp" />
             </LinearLayout>
 
+            <!-- 몸매슬림 -->
             <LinearLayout
                 android:id="@+id/tabBodySlim"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="3dp"
                 android:gravity="center"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="@drawable/bg_tab_unselected">
+
                 <TextView
                     android:id="@+id/txtTabBodySlim"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🧍 몸매슬림"
-                    android:textColor="#AAAAAA"
+                    android:text="🧍 몸매"
+                    android:textColor="#94A3B8"
                     android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
@@ -219,10 +269,10 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="16dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="12dp">
+            android:paddingHorizontal="4dp">
 
             <TextView
                 android:id="@+id/txtParamName"
@@ -230,7 +280,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="❄️ 쿨톤 피부"
-                android:textColor="#EEEEEE"
+                android:textColor="#F8FAFC"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -238,22 +288,29 @@
                 android:id="@+id/txtParamValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_value_badge"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
                 android:text="0"
-                android:textColor="#3B82F6"
-                android:textSize="16sp"
+                android:textColor="#38BDF8"
+                android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 3. 조절 시크바 -->
+        <!-- 3. 프리미엄 커스텀 조절 시크바 -->
         <SeekBar
             android:id="@+id/seekBarAdjust"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="44dp"
-            android:layout_marginTop="6dp"
+            android:maxHeight="44dp"
+            android:layout_marginTop="8dp"
             android:max="100"
             android:progress="0"
-            android:paddingHorizontal="12dp" />
+            android:progressDrawable="@drawable/seekbar_track"
+            android:thumb="@drawable/seekbar_thumb"
+            android:splitTrack="false"
+            android:paddingHorizontal="14dp" />
 
     </LinearLayout>
 
