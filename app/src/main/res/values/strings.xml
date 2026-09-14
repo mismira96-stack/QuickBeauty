@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">퀵뷰티</string>
+    <string name="privacy_policy_link">개인정보</string>
+    <string name="privacy_policy_title">개인정보 안내</string>
+    <string name="privacy_policy_disclosure">사진과 보정 결과는 기기에서 처리되며 Google로 전송되지 않습니다. 다만 Google ML Kit가 진단과 사용 분석을 위해 기기·앱 정보, 성능 및 오류 정보를 Google에 전송할 수 있습니다.</string>
+    <string name="privacy_policy_open">개인정보처리방침 보기</string>
+    <string name="privacy_policy_url">https://github.com/mismira96-stack/QuickBeauty/blob/main/PRIVACY_POLICY.md</string>
+    <string name="close">닫기</string>
 </resources>

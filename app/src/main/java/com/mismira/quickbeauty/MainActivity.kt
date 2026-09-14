@@ -1,6 +1,5 @@
 package com.mismira.quickbeauty
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -10,7 +9,6 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
@@ -20,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -68,9 +67,9 @@ class MainActivity : AppCompatActivity() {
 
     private val prefs by lazy { getSharedPreferences("quick_beauty_prefs", Context.MODE_PRIVATE) }
 
-    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data?.data != null) {
-            loadImage(result.data!!.data!!)
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            loadImage(uri)
         } else if (targetImageUri == null) {
             finish()
         }
@@ -135,6 +134,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         findViewById<View>(R.id.btnClose).setOnClickListener { finish() }
+        findViewById<View>(R.id.btnPrivacyPolicy).setOnClickListener { showPrivacyInformation() }
         btnReset.setOnClickListener { resetAll() }
         findViewById<View>(R.id.btnSave).setOnClickListener { saveProcessedImage() }
 
@@ -289,22 +289,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun pickImageFromGallery() {
-        val pickIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
-            type = "image/*"
-        }
         try {
-            pickImageLauncher.launch(pickIntent)
+            pickImageLauncher.launch("image/*")
         } catch (_: Throwable) {
-            try {
-                val getContentIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "image/*"
-                }
-                pickImageLauncher.launch(Intent.createChooser(getContentIntent, "사진 선택"))
-            } catch (_: Throwable) {
-                Toast.makeText(this, "사진 선택기를 열 수 없습니다.", Toast.LENGTH_SHORT).show()
-                finish()
-            }
+            Toast.makeText(this, "사진 선택기를 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+            finish()
         }
+    }
+
+    private fun openPrivacyPolicy() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.privacy_policy_url)))
+        try {
+            startActivity(intent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, "개인정보처리방침을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showPrivacyInformation() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.privacy_policy_title)
+            .setMessage(R.string.privacy_policy_disclosure)
+            .setPositiveButton(R.string.privacy_policy_open) { _, _ -> openPrivacyPolicy() }
+            .setNegativeButton(R.string.close, null)
+            .show()
     }
 
     private fun loadImage(uri: Uri) {
