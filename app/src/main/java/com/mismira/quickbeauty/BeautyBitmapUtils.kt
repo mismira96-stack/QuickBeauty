@@ -204,39 +204,90 @@ object BeautyBitmapUtils {
     private fun copyExifMetadata(context: Context, sourceUri: Uri, targetUri: Uri) {
         try {
             val resolver = context.contentResolver
-            val srcExif = resolver.openInputStream(sourceUri)?.use { input ->
+
+            // Android 10+ (Q): Scoped Storage에서 위치 정보(GPS) 유실을 방지하기 위해 setRequireOriginal 적용
+            val readUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try {
+                    MediaStore.setRequireOriginal(sourceUri)
+                } catch (_: Throwable) {
+                    sourceUri
+                }
+            } else {
+                sourceUri
+            }
+
+            val srcExif = try {
+                resolver.openFileDescriptor(readUri, "r")?.use { pfd ->
+                    ExifInterface(pfd.fileDescriptor)
+                }
+            } catch (_: Throwable) {
+                null
+            } ?: resolver.openInputStream(readUri)?.use { input ->
                 ExifInterface(input)
-            } ?: return
+            }
 
             resolver.openFileDescriptor(targetUri, "rw")?.use { pfd ->
                 val dstExif = ExifInterface(pfd.fileDescriptor)
 
-                val tagsToCopy = arrayOf(
-                    ExifInterface.TAG_MAKE,
-                    ExifInterface.TAG_MODEL,
-                    ExifInterface.TAG_F_NUMBER,
-                    ExifInterface.TAG_EXPOSURE_TIME,
-                    ExifInterface.TAG_ISO_SPEED_RATINGS,
-                    ExifInterface.TAG_FOCAL_LENGTH,
-                    ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM,
-                    ExifInterface.TAG_WHITE_BALANCE,
-                    ExifInterface.TAG_FLASH,
-                    ExifInterface.TAG_COLOR_SPACE,
-                    ExifInterface.TAG_GPS_LATITUDE,
-                    ExifInterface.TAG_GPS_LATITUDE_REF,
-                    ExifInterface.TAG_GPS_LONGITUDE,
-                    ExifInterface.TAG_GPS_LONGITUDE_REF,
-                    ExifInterface.TAG_GPS_ALTITUDE,
-                    ExifInterface.TAG_GPS_ALTITUDE_REF,
-                    ExifInterface.TAG_GPS_TIMESTAMP,
-                    ExifInterface.TAG_GPS_DATESTAMP
-                )
+                if (srcExif != null) {
+                    val tagsToCopy = arrayOf(
+                        ExifInterface.TAG_MAKE,
+                        ExifInterface.TAG_MODEL,
+                        ExifInterface.TAG_F_NUMBER,
+                        ExifInterface.TAG_EXPOSURE_TIME,
+                        ExifInterface.TAG_ISO_SPEED_RATINGS,
+                        ExifInterface.TAG_FOCAL_LENGTH,
+                        ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM,
+                        ExifInterface.TAG_WHITE_BALANCE,
+                        ExifInterface.TAG_FLASH,
+                        ExifInterface.TAG_COLOR_SPACE,
+                        // GPS 위치 정보 (위도, 경도, 고도, 타임스탬프)
+                        ExifInterface.TAG_GPS_LATITUDE,
+                        ExifInterface.TAG_GPS_LATITUDE_REF,
+                        ExifInterface.TAG_GPS_LONGITUDE,
+                        ExifInterface.TAG_GPS_LONGITUDE_REF,
+                        ExifInterface.TAG_GPS_ALTITUDE,
+                        ExifInterface.TAG_GPS_ALTITUDE_REF,
+                        ExifInterface.TAG_GPS_TIMESTAMP,
+                        ExifInterface.TAG_GPS_DATESTAMP,
+                        ExifInterface.TAG_GPS_PROCESSING_METHOD
+                    )
 
-                for (tag in tagsToCopy) {
-                    val value = srcExif.getAttribute(tag)
-                    if (value != null) {
-                        dstExif.setAttribute(tag, value)
+                    for (tag in tagsToCopy) {
+                        val value = srcExif.getAttribute(tag)
+                        if (value != null) {
+                            dstExif.setAttribute(tag, value)
+                        }
                     }
+
+                    // FloatArray 기반 getLatLong 확인 및 보완
+                    val latLong = FloatArray(2)
+                    if (dstExif.getAttribute(ExifInterface.TAG_GPS_LATITUDE) == null && srcExif.getLatLong(latLong)) {
+                        setGpsCoordinates(dstExif, latLong[0].toDouble(), latLong[1].toDouble())
+                    }
+                }
+
+                // MediaStore DB 레코드에서 추가 위치 정보 fallback 조회
+                if (dstExif.getAttribute(ExifInterface.TAG_GPS_LATITUDE) == null) {
+                    try {
+                        val projection = arrayOf(
+                            MediaStore.Images.Media.LATITUDE,
+                            MediaStore.Images.Media.LONGITUDE
+                        )
+                        resolver.query(sourceUri, projection, null, null, null)?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                val latIdx = cursor.getColumnIndex(MediaStore.Images.Media.LATITUDE)
+                                val lonIdx = cursor.getColumnIndex(MediaStore.Images.Media.LONGITUDE)
+                                if (latIdx >= 0 && lonIdx >= 0 && !cursor.isNull(latIdx) && !cursor.isNull(lonIdx)) {
+                                    val lat = cursor.getDouble(latIdx)
+                                    val lon = cursor.getDouble(lonIdx)
+                                    if (lat != 0.0 || lon != 0.0) {
+                                        setGpsCoordinates(dstExif, lat, lon)
+                                    }
+                                }
+                            }
+                        }
+                    } catch (_: Throwable) {}
                 }
 
                 // 갤러리 타임라인 최상단(오늘/방금 전 최신 사진)에 즉시 정렬되도록 날짜는 현재 시각으로 설정
@@ -252,5 +303,21 @@ object BeautyBitmapUtils {
         } catch (t: Throwable) {
             Log.w(TAG, "EXIF 메타데이터 복사 건너뜀: ${t.message}")
         }
+    }
+
+    private fun setGpsCoordinates(exif: ExifInterface, latitude: Double, longitude: Double) {
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, decimalToDms(latitude))
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, if (latitude >= 0) "N" else "S")
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, decimalToDms(longitude))
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, if (longitude >= 0) "E" else "W")
+    }
+
+    private fun decimalToDms(coord: Double): String {
+        val absCoord = Math.abs(coord)
+        val degrees = absCoord.toInt()
+        val minutesDouble = (absCoord - degrees) * 60.0
+        val minutes = minutesDouble.toInt()
+        val seconds = ((minutesDouble - minutes) * 60.0 * 1000.0).toInt()
+        return "$degrees/1,$minutes/1,$seconds/1000"
     }
 }
