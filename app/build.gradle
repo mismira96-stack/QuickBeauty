@@ -3,6 +3,12 @@ plugins {
     id "org.jetbrains.kotlin.android"
 }
 
+def localProps = new Properties()
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+
 android {
     namespace "com.mismira.quickbeauty"
     compileSdk 36
@@ -13,6 +19,18 @@ android {
         targetSdk 36
         versionCode 1
         versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            def storePath = localProps.getProperty("RELEASE_STORE_FILE")
+            if (storePath) {
+                storeFile file(storePath)
+                storePassword localProps.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias localProps.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword localProps.getProperty("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     compileOptions {
@@ -26,6 +44,7 @@ android {
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
         }
     }

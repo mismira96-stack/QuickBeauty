@@ -38,7 +38,7 @@
             android:layout_toEndOf="@id/btnClose"
             android:layout_centerVertical="true"
             android:layout_marginStart="8dp"
-            android:text="간편 뷰티"
+            android:text="퀵뷰티"
             android:textColor="#F4F4F5"
             android:textSize="17sp"
             android:textStyle="bold" />
