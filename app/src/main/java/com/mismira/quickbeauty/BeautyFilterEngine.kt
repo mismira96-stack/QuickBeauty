@@ -1,4 +1,4 @@
-package com.mismira.quickbeauty
+package com.quickbeauty.app
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -358,3 +358,4 @@ object BeautyFilterEngine {
         return output
     }
 }
+

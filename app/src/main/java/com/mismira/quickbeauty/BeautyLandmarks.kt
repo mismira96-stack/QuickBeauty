@@ -1,4 +1,4 @@
-package com.mismira.quickbeauty
+package com.quickbeauty.app
 
 import kotlin.math.max
 
@@ -129,3 +129,4 @@ class BeautyLandmarks(
         return res
     }
 }
+

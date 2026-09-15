@@ -1,4 +1,4 @@
-package com.mismira.quickbeauty
+package com.quickbeauty.app
 
 import android.content.Context
 import android.content.Intent
@@ -456,3 +456,4 @@ class MainActivity : AppCompatActivity() {
         detector?.release()
     }
 }
+

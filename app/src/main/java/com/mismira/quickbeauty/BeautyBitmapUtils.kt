@@ -1,4 +1,4 @@
-package com.mismira.quickbeauty
+package com.quickbeauty.app
 
 import android.content.ContentValues
 import android.content.Context
@@ -257,3 +257,4 @@ object BeautyBitmapUtils {
     }
 
 }
+

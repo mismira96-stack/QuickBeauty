@@ -1,7 +1,7 @@
 # QuickBeauty (간편 뷰티 ✨) 개발 완료 리포트 & 워크로그 (Worklog)
 
 > **프로젝트 개요**: 초경량 온디바이스 사진 편집 Android 앱
-> **패키지명**: `com.mismira.quickbeauty`  
+> **패키지명**: `com.quickbeauty.app`  
 > **저장소**: [QuickBeauty GitHub Repository](https://github.com/mismira96-stack/QuickBeauty.git)  
 > **작성일**: 2026-09-13  
 > **핵심 가치**: "사진/분석 결과는 온디바이스 처리 · 광고 제로 · 고화질 저장 · 2단 미니멀 UI"
@@ -119,3 +119,4 @@ app/src/main/java/com/mismira/quickbeauty/
   - 복잡한 가입이나 서버 연동이 없어 테스터들이 즉시 만족하며 사용할 수 있는 높은 완성도.
   - 릴리즈 빌드 번들(`.aab`) 및 서명 키 발급 준비 완료.
 - **GitHub 저장소 관리**: `origin/main` 브랜치에 모든 소스코드 커밋 및 최신화 완료.
+

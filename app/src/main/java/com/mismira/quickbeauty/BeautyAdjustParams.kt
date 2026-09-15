@@ -1,4 +1,4 @@
-package com.mismira.quickbeauty
+package com.quickbeauty.app
 
 /**
  * 뷰티 보정 파라미터 모델 (0 ~ 100)
@@ -59,3 +59,4 @@ data class BeautyAdjustParams(
         set(c, fs, 0, fl, 0, b)
     }
 }
+

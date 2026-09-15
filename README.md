@@ -32,9 +32,10 @@
 - **Language**: 100% Kotlin
 - **AI/ML Engine**: Google ML Kit (Face Detection 16.1.7, Pose Detection 18.0.0-beta3)
 - **Rendering**: Android Canvas Bitmap Mesh (`drawBitmapMesh`) + 60x60 적응형 고밀도 메쉬 + Skia ColorMatrix
-- **Package**: `com.mismira.quickbeauty`
+- **Package**: `com.quickbeauty.app`
 
 ---
 
 ## 📄 라이선스
 MIT License
+

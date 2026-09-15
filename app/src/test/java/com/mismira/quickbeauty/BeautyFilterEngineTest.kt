@@ -1,4 +1,4 @@
-package com.mismira.quickbeauty
+package com.quickbeauty.app
 
 import org.junit.Assert
 import org.junit.Test
@@ -210,3 +210,4 @@ class BeautyFilterEngineTest {
         }
     }
 }
+

@@ -10,11 +10,11 @@ if (localPropsFile.exists()) {
 }
 
 android {
-    namespace "com.mismira.quickbeauty"
+    namespace "com.quickbeauty.app"
     compileSdk 36
 
     defaultConfig {
-        applicationId "com.mismira.quickbeauty"
+        applicationId "com.quickbeauty.app"
         minSdk 29
         targetSdk 36
         versionCode 4

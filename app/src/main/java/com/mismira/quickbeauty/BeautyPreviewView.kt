@@ -1,4 +1,4 @@
-﻿package com.mismira.quickbeauty
+package com.quickbeauty.app
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -141,3 +141,4 @@ class BeautyPreviewView @JvmOverloads constructor(
         }
     }
 }
+
