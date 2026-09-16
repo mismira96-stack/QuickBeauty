@@ -91,7 +91,7 @@ class BeautyPreviewView @JvmOverloads constructor(
             canvas.drawBitmap(bmp, 0f, 0f, paint)
             canvas.restore()
 
-            if (!showOriginal && focusRingAlpha > 0f && currentLandmarks != null && currentLandmarks.allFaces.size > 1) {
+            if (!showOriginal && focusRingAlpha > 0f && currentLandmarks != null && currentLandmarks.allFaces.isNotEmpty()) {
                 drawFaceIndicators(canvas, currentLandmarks, left, top, scale)
             }
             return
@@ -149,8 +149,8 @@ class BeautyPreviewView @JvmOverloads constructor(
             }
         }
 
-        // 다중 인물 감지 시 은은한 얼굴 포커스 링 오버레이 표시
-        if (!showOriginal && focusRingAlpha > 0f && currentLandmarks.allFaces.size > 1) {
+        // 얼굴 감지 시 은은한 얼굴 포커스 링 오버레이 표시
+        if (!showOriginal && focusRingAlpha > 0f && currentLandmarks.allFaces.isNotEmpty()) {
             drawFaceIndicators(canvas, currentLandmarks, left, top, scale)
         }
     }
@@ -208,26 +208,39 @@ class BeautyPreviewView @JvmOverloads constructor(
 
     /**
      * 뷰 터치 좌표(viewX, viewY)에 위치한 얼굴 인덱스 탐색
+     * 화면 픽셀(dp) 기준의 거리 계산과 넉넉한 터치 영역(최소 56dp)을 제공하여
+     * 원거리/소형 인물이라도 손가락 터치 시 100% 안정적으로 인식
      */
     fun findFaceAt(viewX: Float, viewY: Float): Int? {
         val lm = landmarks ?: return null
-        if (lm.allFaces.size <= 1) return null
+        if (lm.allFaces.isEmpty()) return null
 
         val scale = lastScale
         if (scale <= 0f) return null
 
-        val bmpX = (viewX - lastLeft) / scale
-        val bmpY = (viewY - lastTop) / scale
+        val density = resources.displayMetrics.density
+        val minHitRadiusPx = 56f * density // 화면 기준 최소 56dp (손가락 터치 반경)
+
+        var closestIndex: Int? = null
+        var minDistance = Float.MAX_VALUE
 
         for (face in lm.allFaces) {
-            val pad = max(50f, face.bounds.width() * 0.45f)
-            if (bmpX in (face.bounds.left - pad)..(face.bounds.right + pad) &&
-                bmpY in (face.bounds.top - pad)..(face.bounds.bottom + pad)
-            ) {
-                return face.index
+            val fcViewX = lastLeft + face.center.x * scale
+            val fcViewY = lastTop + face.center.y * scale
+
+            val dx = viewX - fcViewX
+            val dy = viewY - fcViewY
+            val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+
+            val faceRadiusView = max(face.bounds.width(), face.bounds.height()) * 0.5f * scale
+            val hitThreshold = max(minHitRadiusPx, faceRadiusView * 1.6f)
+
+            if (dist <= hitThreshold && dist < minDistance) {
+                minDistance = dist
+                closestIndex = face.index
             }
         }
-        return null
+        return closestIndex
     }
 }
 

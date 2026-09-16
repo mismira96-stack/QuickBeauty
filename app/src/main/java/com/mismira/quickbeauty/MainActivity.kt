@@ -188,7 +188,7 @@ class MainActivity : AppCompatActivity() {
                         previewView.setShowOriginal(false)
                         badgeOriginal.visibility = View.GONE
                     } else if (duration < LONG_PRESS_TIMEOUT_MS && dist < dpToPx(25)) {
-                        // 2. 가벼운 탭: 다중 얼굴 전환 시도
+                        // 2. 가벼운 탭: 얼굴 터치 판정 및 피드백
                         val tappedIndex = previewView.findFaceAt(event.x, event.y)
                         val lm = detectedLandmarks
                         if (tappedIndex != null && lm != null) {
@@ -199,9 +199,14 @@ class MainActivity : AppCompatActivity() {
                                 Toast.makeText(this, "${tappedIndex + 1}번째 인물 선택됨 ✨", Toast.LENGTH_SHORT).show()
                             } else {
                                 previewView.showFocusIndicator()
+                                if (lm.allFaces.size > 1) {
+                                    Toast.makeText(this, "${tappedIndex + 1}번째 인물 보정 중 ✨", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(this, "얼굴 선택됨 ✨", Toast.LENGTH_SHORT).show()
+                                }
                             }
-                        } else if (lm != null && lm.allFaces.size > 1) {
-                            // 다중 인물 사진에서 화면 터치 시 포커스 링 다시 안내
+                        } else if (lm != null && lm.allFaces.isNotEmpty()) {
+                            // 배경 터치 시 감지된 얼굴 포커스 링 다시 안내
                             previewView.showFocusIndicator()
                         }
                     }
@@ -219,7 +224,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<View>(R.id.previewContainer).setOnTouchListener(touchCompareListener)
         previewView.setOnTouchListener(touchCompareListener)
 
         selectTab(TAB_COOL_TONE)
