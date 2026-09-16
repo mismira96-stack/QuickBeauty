@@ -65,6 +65,15 @@ class MainActivity : AppCompatActivity() {
     private val params = BeautyAdjustParams()
     private var detector: FaceBodyDetector? = null
 
+    private var hasShownSmallPersonNotice = false
+    private var touchDownTime = 0L
+    private var touchDownX = 0f
+    private var touchDownY = 0f
+    private val showOriginalRunnable = Runnable {
+        previewView.setShowOriginal(true)
+        badgeOriginal.visibility = View.VISIBLE
+    }
+
     private val prefs by lazy { getSharedPreferences("quick_beauty_prefs", Context.MODE_PRIVATE) }
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -152,14 +161,44 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        val touchCompareListener = View.OnTouchListener { _, event ->
+        val touchCompareListener = View.OnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    previewView.setShowOriginal(true)
-                    badgeOriginal.visibility = View.VISIBLE
+                    touchDownX = event.x
+                    touchDownY = event.y
+                    touchDownTime = System.currentTimeMillis()
+                    v.handler?.postDelayed(showOriginalRunnable, 150)
                     true
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP -> {
+                    v.handler?.removeCallbacks(showOriginalRunnable)
+                    val duration = System.currentTimeMillis() - touchDownTime
+                    val dx = event.x - touchDownX
+                    val dy = event.y - touchDownY
+                    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+
+                    // 350ms 이내 & 25dp 이내 이동은 가벼운 탭(Tap)으로 판정 -> 다중 얼굴 전환 시도
+                    if (duration < 350 && dist < dpToPx(25)) {
+                        val tappedIndex = previewView.findFaceAt(event.x, event.y)
+                        val lm = detectedLandmarks
+                        if (tappedIndex != null && lm != null) {
+                            if (tappedIndex != lm.selectedFaceIndex) {
+                                detector?.switchToFace(lm, tappedIndex)
+                                previewView.setSource(previewBitmap, lm)
+                                previewView.showFocusIndicator()
+                                Toast.makeText(this, "${tappedIndex + 1}번째 인물 선택됨 ✨", Toast.LENGTH_SHORT).show()
+                            } else {
+                                previewView.showFocusIndicator()
+                            }
+                        }
+                    }
+
+                    previewView.setShowOriginal(false)
+                    badgeOriginal.visibility = View.GONE
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    v.handler?.removeCallbacks(showOriginalRunnable)
                     previewView.setShowOriginal(false)
                     badgeOriginal.visibility = View.GONE
                     true
@@ -335,9 +374,14 @@ class MainActivity : AppCompatActivity() {
 
             detector?.detect(bmp) { landmarks ->
                 detectedLandmarks = landmarks
+                hasShownSmallPersonNotice = false
                 progressBar.visibility = View.GONE
                 previewView.setSource(bmp, landmarks)
                 previewView.setParams(params)
+                if (landmarks.allFaces.size > 1) {
+                    previewView.showFocusIndicator()
+                    Toast.makeText(this@MainActivity, "두 명 이상 감지됨 (얼굴을 터치하여 전환 가능)", Toast.LENGTH_SHORT).show()
+                }
                 showCoachMarkIfNeeded()
             }
         }
@@ -387,6 +431,14 @@ class MainActivity : AppCompatActivity() {
             TAB_FACE_LENGTH -> params.faceLength = progress
             TAB_SHOULDER -> params.shoulder = progress
             TAB_BODY_SLIM -> params.bodySlim = progress
+        }
+        applyProgressInternal(progress)
+    }
+
+    private fun applyProgressInternal(progress: Int) {
+        if (progress > 10 && (detectedLandmarks?.faceRatio ?: 1f) < 0.08f && !hasShownSmallPersonNotice && currentTab != TAB_COOL_TONE) {
+            hasShownSmallPersonNotice = true
+            Toast.makeText(this, "💡 인물이 작아 왜곡 방지를 위해 보정 범위가 자동 조절됩니다.", Toast.LENGTH_SHORT).show()
         }
         savePreferences()
         updateResetButton()

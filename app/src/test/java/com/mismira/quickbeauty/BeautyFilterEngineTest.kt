@@ -209,5 +209,64 @@ class BeautyFilterEngineTest {
             }
         }
     }
+
+    @Test
+    fun testSmallPersonStrictClampingPreventsLegDistortion() {
+        val w = 1000
+        val h = 2000
+        val lm = BeautyLandmarks(w, h)
+        // 아기/원거리 전신 사진 시뮬레이션: 얼굴 높이 100px (전체 2000px의 5%)
+        val fcX = 500f
+        val fcY = 700f
+        val fw = 80f
+        val fh = 100f
+        lm.faceBounds.set(fcX - fw * 0.5f, fcY - fh * 0.5f, fcX + fw * 0.5f, fcY + fh * 0.5f)
+        lm.faceCenter.set(fcX, fcY)
+        lm.chinPoint.set(fcX, fcY + fh * 0.5f)
+        lm.hasFace = true
+        lm.setupDefaultsIfEmpty()
+
+        val shoulderParams = BeautyAdjustParams(0, 0, 0, 0, 100, 0)
+        val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, shoulderParams)
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams())
+
+        // 다리 및 바닥 영역: Y >= 1300f (상체 아래 무릎, 다리, 바닥 영역)
+        // 어깨 보정이 100이어도 다리/바닥 버텍스의 변위(dx, dy)는 0이어야 함!
+        var legMaxDisplacement = 0f
+        for (i in warped.indices step 2) {
+            val origX = original[i]
+            val origY = original[i + 1]
+            if (origY >= 1300f) {
+                val dx = kotlin.math.abs(warped[i] - origX)
+                val dy = kotlin.math.abs(warped[i + 1] - origY)
+                val disp = kotlin.math.max(dx, dy)
+                if (disp > legMaxDisplacement) {
+                    legMaxDisplacement = disp
+                }
+            }
+        }
+
+        Assert.assertEquals("Shoulder broaden must NOT distort leg/floor area (displacement must be 0)", 0f, legMaxDisplacement, 0.001f)
+    }
+
+    @Test
+    fun testMultiFaceSetupAndFaceRatio() {
+        val lm = BeautyLandmarks(1000, 1000)
+        lm.faceBounds.set(450f, 300f, 550f, 400f) // 100x100 얼굴 (10%)
+        lm.hasFace = true
+
+        Assert.assertEquals(0.10f, lm.faceRatio, 0.01f)
+
+        // 다중 얼굴 추가
+        val f1 = BeautyLandmarks.FaceInfo(0, 0.85f)
+        f1.bounds.set(450f, 300f, 550f, 400f)
+        val f2 = BeautyLandmarks.FaceInfo(1, 0.40f)
+        f2.bounds.set(100f, 200f, 150f, 250f)
+        lm.allFaces.add(f1)
+        lm.allFaces.add(f2)
+
+        Assert.assertEquals(2, lm.allFaces.size)
+        Assert.assertEquals(0, lm.selectedFaceIndex)
+    }
 }
 

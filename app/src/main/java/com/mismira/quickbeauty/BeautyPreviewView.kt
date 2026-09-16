@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import kotlin.math.max
 import kotlin.math.min
 
 class BeautyPreviewView @JvmOverloads constructor(
@@ -95,7 +96,7 @@ class BeautyPreviewView @JvmOverloads constructor(
             paint.colorFilter = null
         }
 
-        val needWarp = params.faceSlim > 0 || params.chinSlim > 0 || params.bodySlim > 0
+        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0)
         if (!needWarp) {
             canvas.save()
             canvas.translate(left, top)
@@ -139,6 +140,86 @@ class BeautyPreviewView @JvmOverloads constructor(
                 )
             }
         }
+
+        // 다중 인물 감지 시 은은한 얼굴 포커스 링 오버레이 표시
+        if (!showOriginal && focusRingAlpha > 0f && currentLandmarks.allFaces.size > 1) {
+            drawFaceIndicators(canvas, currentLandmarks, left, top, scale)
+        }
+    }
+
+    private val indicatorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
+
+    private var focusRingAlpha = 0f
+    private val fadeOutRunnable = Runnable {
+        animateFocusRing(0f)
+    }
+
+    fun showFocusIndicator() {
+        handler?.removeCallbacks(fadeOutRunnable)
+        animateFocusRing(1f)
+        handler?.postDelayed(fadeOutRunnable, 2500)
+    }
+
+    private fun animateFocusRing(target: Float) {
+        val animator = android.animation.ValueAnimator.ofFloat(focusRingAlpha, target).apply {
+            duration = 350
+            addUpdateListener {
+                focusRingAlpha = it.animatedValue as Float
+                invalidate()
+            }
+        }
+        animator.start()
+    }
+
+    private fun drawFaceIndicators(canvas: Canvas, landmarks: BeautyLandmarks, left: Float, top: Float, scale: Float) {
+        val selectedIdx = landmarks.selectedFaceIndex
+        for (face in landmarks.allFaces) {
+            val isSelected = face.index == selectedIdx
+            val cx = left + face.center.x * scale
+            val cy = top + face.center.y * scale
+            val r = (max(face.bounds.width(), face.bounds.height()) * 0.55f * scale).coerceAtLeast(30f)
+
+            val baseAlpha = (focusRingAlpha * 255).toInt().coerceIn(0, 255)
+            if (isSelected) {
+                // 선택된 얼굴: 선명한 일렉트릭 블루 링
+                indicatorPaint.color = Color.parseColor("#3B82F6")
+                indicatorPaint.alpha = baseAlpha
+                indicatorPaint.strokeWidth = 3f * resources.displayMetrics.density
+                canvas.drawCircle(cx, cy, r, indicatorPaint)
+            } else {
+                // 다른 얼굴: 부드러운 반투명 화이트 링 (터치 전환 유도)
+                indicatorPaint.color = Color.WHITE
+                indicatorPaint.alpha = (baseAlpha * 0.60f).toInt()
+                indicatorPaint.strokeWidth = 1.8f * resources.displayMetrics.density
+                canvas.drawCircle(cx, cy, r, indicatorPaint)
+            }
+        }
+    }
+
+    /**
+     * 뷰 터치 좌표(viewX, viewY)에 위치한 얼굴 인덱스 탐색
+     */
+    fun findFaceAt(viewX: Float, viewY: Float): Int? {
+        val lm = landmarks ?: return null
+        if (lm.allFaces.size <= 1) return null
+
+        val scale = lastScale
+        if (scale <= 0f) return null
+
+        val bmpX = (viewX - lastLeft) / scale
+        val bmpY = (viewY - lastTop) / scale
+
+        for (face in lm.allFaces) {
+            val pad = max(30f, face.bounds.width() * 0.35f)
+            if (bmpX in (face.bounds.left - pad)..(face.bounds.right + pad) &&
+                bmpY in (face.bounds.top - pad)..(face.bounds.bottom + pad)
+            ) {
+                return face.index
+            }
+        }
+        return null
     }
 }
 

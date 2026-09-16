@@ -70,11 +70,19 @@ object BeautyFilterEngine {
         val fw = max(20f, landmarks?.faceBounds?.width() ?: (width * 0.35f))
         val fh = max(20f, landmarks?.faceBounds?.height() ?: (height * 0.35f))
 
+        // 인물 크기 비율 기반 왜곡 방지 감쇠 계수 (인물이 작을수록 배경 뒤틀림 방지를 위해 미세 보정 강도 조절)
+        val faceRatio = landmarks?.faceRatio ?: (max(fw, fh) / min(width, height))
+        val scaleDamping = if (faceRatio < 0.08f) {
+            (faceRatio / 0.08f).coerceIn(0.20f, 1.0f)
+        } else {
+            1.0f
+        }
+
         // 1. 얼굴 전체 크기 축소 (소두 효과 - X/Y 비율 유지 전체 축소) 파라미터
         val headRadius = max(fw, fh) * 0.70f
         val headInnerR = headRadius * 0.60f
         val headOuterR = headRadius * 1.35f
-        val maxHeadScale = 0.085f * faceSizeFactor
+        val maxHeadScale = 0.085f * faceSizeFactor * scaleDamping
 
         // 2. 턱선 V라인 슬림 파라미터
         val chinY = landmarks?.chinPoint?.y ?: (fcY + fh * 0.45f)
@@ -89,10 +97,10 @@ object BeautyFilterEngine {
         val jawInnerProtectW = fw * 0.15f
         val jawPeakW = fw * 0.45f
         val jawOuterW = fw * 0.78f
-        val maxJawPush = fw * 0.060f * chinSlimFactor
+        val maxJawPush = fw * 0.060f * chinSlimFactor * scaleDamping
 
         // 3. 얼굴 세로 길이 축소 (하관 리프팅 / 긴 얼굴 단축) 파라미터
-        val maxChinLift = fh * 0.075f * faceLengthFactor
+        val maxChinLift = fh * 0.075f * faceLengthFactor * scaleDamping
         val lengthInnerW = fw * 0.40f
         val lengthOuterW = fw * 0.75f
         val chinToMouthSpan = max(10f, chinY - mouthY)
@@ -101,36 +109,57 @@ object BeautyFilterEngine {
         val foreheadTopY = fcY - fh * 0.50f
         val foreheadSpan = max(10f, fh * 0.30f)
 
-        // 4. 어깨 넓히기 (직각 어깨) 파라미터
+        // 4. 어깨 넓히기 (직각 어깨) 파라미터 - 상체 보정력 보존 & 다리 침범 차단
         val shoulderCenterY: Float
         val leftShoulderX: Float
         val rightShoulderX: Float
-        if (hasBody && landmarks != null && landmarks.leftShoulder.x > 0) {
+        if (hasBody && landmarks.leftShoulder.x > 0) {
             shoulderCenterY = (landmarks.leftShoulder.y + landmarks.rightShoulder.y) * 0.5f
             leftShoulderX = min(landmarks.leftShoulder.x, landmarks.rightShoulder.x)
             rightShoulderX = max(landmarks.leftShoulder.x, landmarks.rightShoulder.x)
         } else {
             // 얼굴 위치 기준 인체 비율 추정 (상반신 포트레이트)
-            shoulderCenterY = chinY + fh * 0.45f
-            leftShoulderX = fcX - fw * 1.35f
-            rightShoulderX = fcX + fw * 1.35f
+            shoulderCenterY = chinY + fh * 0.40f
+            leftShoulderX = fcX - fw * 1.30f
+            rightShoulderX = fcX + fw * 1.30f
         }
         val shoulderCenterX = (leftShoulderX + rightShoulderX) * 0.5f
-        val shoulderSpanX = max(40f, rightShoulderX - leftShoulderX)
+        val rawSpanX = max(30f, rightShoulderX - leftShoulderX)
+        // 얼굴은 작지만 상체가 큰 체형을 위해 어깨 너비 상한선을 fw * 3.0f로 여유 있게 허용
+        val shoulderSpanX = min(rawSpanX, fw * 3.0f)
         val shoulderHalfSpan = shoulderSpanX * 0.5f
-        val maxShoulderPush = shoulderSpanX * 0.055f * shoulderFactor
+
+        // 얼굴이 작아도 몸이 크면 보정이 지나치게 죽지 않도록 effectiveRatio 재계산
+        val bodyRatio = (shoulderSpanX / min(width, height)).coerceIn(0f, 1f)
+        val effectiveScaleDamping = if (max(faceRatio, bodyRatio * 0.55f) < 0.08f) {
+            (max(faceRatio, bodyRatio * 0.55f) / 0.08f).coerceIn(0.25f, 1.0f)
+        } else {
+            1.0f
+        }
+
+        val maxShoulderPush = shoulderSpanX * 0.055f * shoulderFactor * effectiveScaleDamping
 
         val shoulderTopY = chinY + fh * 0.08f
-        val shoulderBotY = shoulderCenterY + shoulderHalfSpan * 0.55f
+        // 어깨 하단: 상체와 가슴까지 자연스럽게 연결하되, 엉덩이/골반(leftHip) 이전에서 안전 종료
+        val hipY = if (hasBody && landmarks.leftHip.y > shoulderCenterY) landmarks.leftHip.y else (shoulderCenterY + fh * 2.2f)
+        val maxShoulderBot = min(hipY - 10f, shoulderCenterY + max(fh * 1.15f, shoulderHalfSpan * 0.65f))
+        val shoulderBotY = min(height.toFloat(), maxShoulderBot)
         val shoulderYSpan = max(20f, shoulderBotY - shoulderTopY)
 
-        // 5. 몸매 슬림 파라미터
-        val bodyCenterY = landmarks?.bodyCenterY ?: 0f
-        val bodyCenterX = landmarks?.bodyBounds?.centerX() ?: 0f
-        val bodyTopY = landmarks?.bodyTopY ?: 0f
-        val bodyBottomY = landmarks?.bodyBottomY ?: 0f
+        // 5. 몸매 슬림 파라미터 - 어깨와 분리된 허리/복부 집중 영역 (무릎/다리/바닥 번짐 완전 차단)
+        val bodyTopY = shoulderCenterY + fh * 0.35f
+        val rawBottomY = if (hasBody && landmarks.leftHip.y > bodyTopY) {
+            // 골반 위치가 감지된 경우 골반 약간 아래까지만 허용 (무릎/다리 침범 방지)
+            landmarks.leftHip.y + fh * 0.45f
+        } else {
+            bodyTopY + fh * 2.5f
+        }
+        val bodyBottomY = min(min(height.toFloat(), bodyTopY + fh * 3.0f), rawBottomY)
+        val bodyCenterY = (bodyTopY + bodyBottomY) * 0.5f
+        val bodyCenterX = landmarks?.bodyBounds?.centerX() ?: fcX
         val bodyHalfHeight = max(20f, (bodyBottomY - bodyTopY) * 0.5f)
-        val bodyHalfWidth = max(20f, (landmarks?.bodyBounds?.width() ?: 0f) * 0.6f)
+        val rawHalfWidth = (landmarks?.bodyBounds?.width() ?: (fw * 1.6f)) * 0.55f
+        val bodyHalfWidth = min(rawHalfWidth, fw * 2.2f)
 
         var index = 0
         for (r in 0..meshH) {
