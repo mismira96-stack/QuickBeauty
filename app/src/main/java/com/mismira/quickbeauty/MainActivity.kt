@@ -172,47 +172,33 @@ class MainActivity : AppCompatActivity() {
                     touchDownY = event.y
                     touchDownTime = System.currentTimeMillis()
                     isShowingOriginal = false
-                    // 300ms 롱프레스 딜레이: 가벼운 탭과 길게 눌러 원본 비교를 완벽 분리
-                    v.handler?.postDelayed(showOriginalRunnable, LONG_PRESS_TIMEOUT_MS)
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    v.handler?.removeCallbacks(showOriginalRunnable)
-                    val duration = System.currentTimeMillis() - touchDownTime
-                    val dx = event.x - touchDownX
-                    val dy = event.y - touchDownY
-                    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
 
-                    if (isShowingOriginal) {
-                        // 1. 롱프레스 원본 비교 종료
-                        previewView.setShowOriginal(false)
-                        badgeOriginal.visibility = View.GONE
-                    } else if (duration < LONG_PRESS_TIMEOUT_MS && dist < dpToPx(25)) {
-                        // 2. 가벼운 탭: 얼굴 터치 판정 및 피드백
-                        val tappedIndex = previewView.findFaceAt(event.x, event.y)
-                        val lm = detectedLandmarks
-                        if (tappedIndex != null && lm != null) {
-                            if (tappedIndex != lm.selectedFaceIndex) {
-                                detector?.switchToFace(lm, tappedIndex)
-                                previewView.setSource(previewBitmap, lm)
-                                previewView.showFocusIndicator()
-                                Toast.makeText(this, "${tappedIndex + 1}번째 인물 선택됨 ✨", Toast.LENGTH_SHORT).show()
-                            } else {
-                                previewView.showFocusIndicator()
-                                if (lm.allFaces.size > 1) {
-                                    Toast.makeText(this, "${tappedIndex + 1}번째 인물 보정 중 ✨", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(this, "얼굴 선택됨 ✨", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        } else if (lm != null && lm.allFaces.isNotEmpty()) {
-                            // 배경 터치 시 감지된 얼굴 포커스 링 다시 안내
+                    // [공간 기반 분기]: 터치한 지점이 얼굴 영역인가?
+                    val tappedIndex = previewView.findFaceAt(event.x, event.y)
+                    val lm = detectedLandmarks
+
+                    if (tappedIndex != null && lm != null) {
+                        // 1. 얼굴을 터치함 -> 원본 비교 타이머는 아예 켜지 않고 즉시 얼굴 선택!
+                        if (tappedIndex != lm.selectedFaceIndex) {
+                            detector?.switchToFace(lm, tappedIndex)
+                            previewView.setSource(previewBitmap, lm)
                             previewView.showFocusIndicator()
+                            Toast.makeText(this, "${tappedIndex + 1}번째 인물 선택됨 ✨", Toast.LENGTH_SHORT).show()
+                        } else {
+                            previewView.showFocusIndicator()
+                            if (lm.allFaces.size > 1) {
+                                Toast.makeText(this, "${tappedIndex + 1}번째 인물 보정 중 ✨", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this, "얼굴 선택됨 ✨", Toast.LENGTH_SHORT).show()
+                            }
                         }
+                    } else {
+                        // 2. 얼굴 제외한 다른 영역(배경/몸 등) 터치 -> 150ms 후 시원하게 원본 비교 실행!
+                        v.handler?.postDelayed(showOriginalRunnable, 150)
                     }
                     true
                 }
-                MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.handler?.removeCallbacks(showOriginalRunnable)
                     if (isShowingOriginal) {
                         previewView.setShowOriginal(false)
