@@ -185,6 +185,15 @@ app/src/main/java/com/mismira/quickbeauty/
 - **실전 웃는 아기 얼굴 회귀 픽스처 테스트 추가 ([P2])**:
   - `testSmilingBabyFaceLengthNoDistortionFixture`: 입술과 턱 끝이 10px로 극도로 좁은 웃는 표정에서도 턱 리프팅 정상 작동, 머리 위(변위 0.0f) 및 줄무늬 티셔츠(변위 0.0f) 완벽 보존을 수학적으로 검증.
 
+#### ⑤ v1.0.4 업데이트 (ML Kit 소형 얼굴 감지율 2배 완화 & 터치 UX 최종 최적화)
+- **ML Kit 소형 얼굴 감지율 완화 (`setMinFaceSize(0.04f)`)**:
+  - 기본값(10%)으로 인해 전신/원거리 2인 사진에서 작은 얼굴이 감지되지 않던 문제를 `0.04f`(4%)로 낮춰 해결.
+  - `PERFORMANCE_MODE_FAST`를 유지하여 지연(0.05초 속도) 없이 2~3인 사진의 작은 얼굴도 모두 정상 감지.
+- **포커스 링 UX 정돈**:
+  - 사진 로드 시 불필요한 링 깜빡임을 제거하고 직접 탭했을 때만 선택된 인물에 단일 파란색 링 표시.
+- **1인 사진 원본 비교 통일**:
+  - 인물이 1명일 때는 얼굴을 누르든 배경을 누르든 100% 원본 비교로 작동하여 조작 편의성 극대화.
+
 ---
 
 ### 3) 품질 검증 결과
@@ -193,7 +202,7 @@ app/src/main/java/com/mismira/quickbeauty/
   - `testFaceLengthDoesNotDistortForeheadAndClothes`: 얼굴길이 100 최대 적용 시 이마 위 배경(변위 0.0f) 및 턱 아래 옷 영역(변위 0.0f) 무왜곡 검증 통과.
   - `testSmilingBabyFaceLengthNoDistortionFixture`: 웃는 아기 얼굴 픽스처 회귀 테스트 통과.
   - `testMultiFaceSetupAndFaceRatio`: 다중 인물 FaceInfo 등록 및 faceRatio 계산 검증 통과.
-- **릴리즈 빌드 검증**: `assembleRelease` 및 `bundleRelease` 에러 없이 빌드 성공.
-- **실기기 동작 검증**: Samsung Galaxy 실기기(`R5KL503VHQR`)에 최신 릴리즈 패키지 설치 및 실행 확인, 프로세스 정상 상주 확인 완료.
+- **릴리즈 빌드 검증**: `assembleRelease` 및 `bundleRelease` (v1.0.4 / versionCode 7) 에러 없이 빌드 성공.
+- **실기기 동작 검증**: Samsung Galaxy 실기기(`R5KL503VHQR`)에 v1.0.4 릴리즈 패키지 설치 및 실행 확인, 프로세스 정상 상주 확인 완료.
 
 
