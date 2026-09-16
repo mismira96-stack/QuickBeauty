@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         private const val TAB_FACE_LENGTH = 3
         private const val TAB_SHOULDER = 4
         private const val TAB_BODY_SLIM = 5
+        private const val LONG_PRESS_TIMEOUT_MS = 300L
     }
 
     private var currentTab = TAB_COOL_TONE
@@ -171,8 +172,8 @@ class MainActivity : AppCompatActivity() {
                     touchDownY = event.y
                     touchDownTime = System.currentTimeMillis()
                     isShowingOriginal = false
-                    // 320ms 롱프레스 딜레이: 가벼운 탭과 길게 눌러 원본 비교를 완벽 분리
-                    v.handler?.postDelayed(showOriginalRunnable, 320)
+                    // 300ms 롱프레스 딜레이: 가벼운 탭과 길게 눌러 원본 비교를 완벽 분리
+                    v.handler?.postDelayed(showOriginalRunnable, LONG_PRESS_TIMEOUT_MS)
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -186,7 +187,7 @@ class MainActivity : AppCompatActivity() {
                         // 1. 롱프레스 원본 비교 종료
                         previewView.setShowOriginal(false)
                         badgeOriginal.visibility = View.GONE
-                    } else if (duration < 350 && dist < dpToPx(25)) {
+                    } else if (duration < LONG_PRESS_TIMEOUT_MS && dist < dpToPx(25)) {
                         // 2. 가벼운 탭: 다중 얼굴 전환 시도
                         val tappedIndex = previewView.findFaceAt(event.x, event.y)
                         val lm = detectedLandmarks
