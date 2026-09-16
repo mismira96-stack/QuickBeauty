@@ -300,5 +300,65 @@ class BeautyFilterEngineTest {
         Assert.assertEquals(2, lm.allFaces.size)
         Assert.assertEquals(0, lm.selectedFaceIndex)
     }
+
+    @Test
+    fun testSmilingBabyFaceLengthNoDistortionFixture() {
+        val w = 1080
+        val h = 1920
+        val lm = BeautyLandmarks(w, h)
+        // 실제 웃는 아기 사진 시뮬레이션:
+        // 얼굴 높이 160px, 활짝 웃어서 입술(745)과 턱끝(755)이 10px로 극도로 좁음
+        lm.faceBounds.set(470f, 620f, 610f, 780f)
+        lm.faceCenter.set(540f, 700f)
+        lm.noseBase.set(540f, 720f)
+        lm.mouthPoint.set(540f, 745f)
+        lm.chinPoint.set(540f, 755f)
+        lm.leftShoulder.set(440f, 820f)
+        lm.rightShoulder.set(640f, 820f)
+        lm.leftHip.set(470f, 1050f)
+        lm.hasFace = true
+        lm.hasBody = true
+
+        val params = BeautyAdjustParams(0, 0, 0, 100, 0, 0)
+        val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams())
+
+        var chinLiftOccurred = false
+        var maxHairDistortion = 0f
+        var maxClothesDistortion = 0f
+
+        for (i in warped.indices step 2) {
+            val origX = original[i]
+            val origY = original[i + 1]
+            val dy = warped[i + 1] - origY
+
+            // 1. 턱 끝 부근 격자점 (X=540, Y=768: safeChinY 위치): 위로 리프팅되어야 함 (dy < 0)
+            if (kotlin.math.abs(origX - 540f) < 5f && kotlin.math.abs(origY - 768f) < 5f) {
+                if (dy < -0.5f) {
+                    chinLiftOccurred = true
+                }
+            }
+
+            // 2. 머리 위 리본 핀 및 배경 (Y <= 600f): 변위가 0.0f여야 함 (단층선 없음)
+            if (origY <= 600f) {
+                val disp = kotlin.math.abs(dy)
+                if (disp > maxHairDistortion) {
+                    maxHairDistortion = disp
+                }
+            }
+
+            // 3. 줄무늬 티셔츠 가슴/목둘레 (Y >= 816f: safeNeckY=787 이후 격자행): 변위가 0.0f여야 함 (옷깃 빨림 없음)
+            if (origY >= 816f) {
+                val disp = kotlin.math.abs(dy)
+                if (disp > maxClothesDistortion) {
+                    maxClothesDistortion = disp
+                }
+            }
+        }
+
+        Assert.assertTrue("Chin lift must occur on smiling baby face fixture", chinLiftOccurred)
+        Assert.assertEquals("Hair/bow/background must NOT be pulled down (displacement 0.0)", 0f, maxHairDistortion, 0.001f)
+        Assert.assertEquals("Striped t-shirt below chin must NOT be pulled up (displacement 0.0)", 0f, maxClothesDistortion, 0.001f)
+    }
 }
 

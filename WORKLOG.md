@@ -173,14 +173,27 @@ app/src/main/java/com/mismira/quickbeauty/
   - **초근접 턱 밑 감쇠 (`neckSpan = min(fh * 0.12f, 25f)`)**: 턱선 바로 아래 10~25px 내에서 리프팅을 0으로 급격 감쇠시켜 **티셔츠 넥라인/가슴팍 변위 0.0% 완벽 차단**.
   - **턱 폭 일체형 코사인 스무딩**: 턱 중앙만 뾰족하게 파이는 현상을 없애고 턱선 전체가 매끄럽게 올라가도록 확장.
 
+#### ④ Codex 2차 리뷰 반영 및 터치 인터랙션 고도화
+- **기본 상태(수치 0) 얼굴 탭 전환 좌표 누락 픽스 ([P1])**:
+  - `BeautyPreviewView.onDraw()` 조기 반환(`params.isDefault()`) 이전에 `lastLeft, lastTop, lastScale`을 항상 저장하도록 수정하여, 사진을 처음 열자마자 탭해도 `findFaceAt`이 100% 정상 작동.
+  - 기본 상태에서도 다중 인물 포커스 링(선택: 일렉트릭 블루, 비선택: 화이트) 렌더링 지원.
+- **다중 인물 전환 시 포즈 랜드마크 보존 ([P1])**:
+  - `FaceBodyDetector`에 `lastDetectedPose`를 캐싱하고, `switchToFace` 시 저장된 포즈를 전달하여 전환된 두 번째 인물도 포즈 기반 신체/어깨 보정이 100% 유지되도록 개선.
+- **원본 비교 vs 얼굴 탭 분리 (사용자 실전 피드백 반영)**:
+  - 롱프레스 딜레이를 150ms $\rightarrow$ 320ms로 최적화하고 `isShowingOriginal` 상태 플래그 도입.
+  - 가벼운 터치(350ms/25dp 이내)는 원본 비교를 트리거하지 않고 즉시 얼굴 전환만 수행하도록 분기하여 오작동 원천 해결.
+- **실전 웃는 아기 얼굴 회귀 픽스처 테스트 추가 ([P2])**:
+  - `testSmilingBabyFaceLengthNoDistortionFixture`: 입술과 턱 끝이 10px로 극도로 좁은 웃는 표정에서도 턱 리프팅 정상 작동, 머리 위(변위 0.0f) 및 줄무늬 티셔츠(변위 0.0f) 완벽 보존을 수학적으로 검증.
+
 ---
 
 ### 3) 품질 검증 결과
-- **단위 테스트 (Unit Tests)**: 12건 전체 통과 (`BUILD SUCCESSFUL`)
+- **단위 테스트 (Unit Tests)**: 13건 전체 통과 (`BUILD SUCCESSFUL`)
   - `testSmallPersonStrictClampingPreventsLegDistortion`: 소형 인물에서 어깨 100 최대 적용 시 다리/바닥 버텍스 변위 0.0f 검증 통과.
   - `testFaceLengthDoesNotDistortForeheadAndClothes`: 얼굴길이 100 최대 적용 시 이마 위 배경(변위 0.0f) 및 턱 아래 옷 영역(변위 0.0f) 무왜곡 검증 통과.
+  - `testSmilingBabyFaceLengthNoDistortionFixture`: 웃는 아기 얼굴 픽스처 회귀 테스트 통과.
   - `testMultiFaceSetupAndFaceRatio`: 다중 인물 FaceInfo 등록 및 faceRatio 계산 검증 통과.
 - **릴리즈 빌드 검증**: `assembleRelease` 및 `bundleRelease` 에러 없이 빌드 성공.
-- **실기기 동작 검증**: Samsung Galaxy 실기기(`R5KL503VHQR`)에 릴리즈 패키지 설치 및 실행 확인, 프로세스 정상 상주 확인 완료.
+- **실기기 동작 검증**: Samsung Galaxy 실기기(`R5KL503VHQR`)에 최신 릴리즈 패키지 설치 및 실행 확인, 프로세스 정상 상주 확인 완료.
 
 

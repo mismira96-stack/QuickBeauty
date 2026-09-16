@@ -78,6 +78,10 @@ class BeautyPreviewView @JvmOverloads constructor(
         val top = (viewH - drawH) * 0.5f
         destRect.set(left, top, left + drawW, top + drawH)
 
+        lastLeft = left
+        lastTop = top
+        lastScale = scale
+
         val currentLandmarks = landmarks
         if (showOriginal || params.isDefault() || currentLandmarks == null) {
             paint.colorFilter = null
@@ -86,6 +90,10 @@ class BeautyPreviewView @JvmOverloads constructor(
             canvas.scale(scale, scale)
             canvas.drawBitmap(bmp, 0f, 0f, paint)
             canvas.restore()
+
+            if (!showOriginal && focusRingAlpha > 0f && currentLandmarks != null && currentLandmarks.allFaces.size > 1) {
+                drawFaceIndicators(canvas, currentLandmarks, left, top, scale)
+            }
             return
         }
 
@@ -212,7 +220,7 @@ class BeautyPreviewView @JvmOverloads constructor(
         val bmpY = (viewY - lastTop) / scale
 
         for (face in lm.allFaces) {
-            val pad = max(30f, face.bounds.width() * 0.35f)
+            val pad = max(50f, face.bounds.width() * 0.45f)
             if (bmpX in (face.bounds.left - pad)..(face.bounds.right + pad) &&
                 bmpY in (face.bounds.top - pad)..(face.bounds.bottom + pad)
             ) {

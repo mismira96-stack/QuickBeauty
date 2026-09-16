@@ -69,7 +69,9 @@ class MainActivity : AppCompatActivity() {
     private var touchDownTime = 0L
     private var touchDownX = 0f
     private var touchDownY = 0f
+    private var isShowingOriginal = false
     private val showOriginalRunnable = Runnable {
+        isShowingOriginal = true
         previewView.setShowOriginal(true)
         badgeOriginal.visibility = View.VISIBLE
     }
@@ -161,13 +163,16 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+
         val touchCompareListener = View.OnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     touchDownX = event.x
                     touchDownY = event.y
                     touchDownTime = System.currentTimeMillis()
-                    v.handler?.postDelayed(showOriginalRunnable, 150)
+                    isShowingOriginal = false
+                    // 320ms 롱프레스 딜레이: 가벼운 탭과 길게 눌러 원본 비교를 완벽 분리
+                    v.handler?.postDelayed(showOriginalRunnable, 320)
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -177,8 +182,12 @@ class MainActivity : AppCompatActivity() {
                     val dy = event.y - touchDownY
                     val dist = kotlin.math.sqrt(dx * dx + dy * dy)
 
-                    // 350ms 이내 & 25dp 이내 이동은 가벼운 탭(Tap)으로 판정 -> 다중 얼굴 전환 시도
-                    if (duration < 350 && dist < dpToPx(25)) {
+                    if (isShowingOriginal) {
+                        // 1. 롱프레스 원본 비교 종료
+                        previewView.setShowOriginal(false)
+                        badgeOriginal.visibility = View.GONE
+                    } else if (duration < 350 && dist < dpToPx(25)) {
+                        // 2. 가벼운 탭: 다중 얼굴 전환 시도
                         val tappedIndex = previewView.findFaceAt(event.x, event.y)
                         val lm = detectedLandmarks
                         if (tappedIndex != null && lm != null) {
@@ -190,17 +199,19 @@ class MainActivity : AppCompatActivity() {
                             } else {
                                 previewView.showFocusIndicator()
                             }
+                        } else if (lm != null && lm.allFaces.size > 1) {
+                            // 다중 인물 사진에서 화면 터치 시 포커스 링 다시 안내
+                            previewView.showFocusIndicator()
                         }
                     }
-
-                    previewView.setShowOriginal(false)
-                    badgeOriginal.visibility = View.GONE
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     v.handler?.removeCallbacks(showOriginalRunnable)
-                    previewView.setShowOriginal(false)
-                    badgeOriginal.visibility = View.GONE
+                    if (isShowingOriginal) {
+                        previewView.setShowOriginal(false)
+                        badgeOriginal.visibility = View.GONE
+                    }
                     true
                 }
                 else -> false

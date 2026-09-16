@@ -42,6 +42,9 @@ class FaceBodyDetector {
     private var faceDetector: FaceDetector? = null
     private var poseDetector: PoseDetector? = null
 
+    var lastDetectedPose: Pose? = null
+        private set
+
     init {
         try {
             val faceOptions = FaceDetectorOptions.Builder()
@@ -123,6 +126,8 @@ class FaceBodyDetector {
                         Log.w(TAG, "얼굴 분석 중 예외: ${e.message}")
                     }
 
+                    lastDetectedPose = poseResult
+
                     // 2. 포즈 분석 파싱 (키메라 방지: 선택된 얼굴과 일치하는 경우에만 바인딩)
                     try {
                         if (poseResult != null && landmarks.hasFace) {
@@ -147,8 +152,9 @@ class FaceBodyDetector {
 
     /**
      * 사용자가 다른 얼굴을 탭했을 때 활성 랜드마크 즉시 재바인딩
+     * 보관된 포즈(lastDetectedPose)를 전달하여 대상 인물과의 포즈 매칭을 재수행
      */
-    fun switchToFace(landmarks: BeautyLandmarks, targetIndex: Int, pose: Pose? = null) {
+    fun switchToFace(landmarks: BeautyLandmarks, targetIndex: Int, pose: Pose? = lastDetectedPose) {
         if (targetIndex !in landmarks.allFaces.indices) return
         landmarks.selectedFaceIndex = targetIndex
         val targetFace = landmarks.allFaces[targetIndex]
