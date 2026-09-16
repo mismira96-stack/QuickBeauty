@@ -177,7 +177,7 @@ class MainActivity : AppCompatActivity() {
                     val tappedIndex = previewView.findFaceAt(event.x, event.y)
                     val lm = detectedLandmarks
 
-                    if (tappedIndex != null && lm != null) {
+                    if (tappedIndex != null && lm != null && lm.allFaces.size > 1) {
                         // 1. 얼굴을 터치함 -> 원본 비교 타이머는 아예 켜지 않고 즉시 얼굴 선택!
                         if (tappedIndex != lm.selectedFaceIndex) {
                             detector?.switchToFace(lm, tappedIndex)
@@ -186,11 +186,7 @@ class MainActivity : AppCompatActivity() {
                             Toast.makeText(this, "${tappedIndex + 1}번째 인물 선택됨 ✨", Toast.LENGTH_SHORT).show()
                         } else {
                             previewView.showFocusIndicator()
-                            if (lm.allFaces.size > 1) {
-                                Toast.makeText(this, "${tappedIndex + 1}번째 인물 보정 중 ✨", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(this, "얼굴 선택됨 ✨", Toast.LENGTH_SHORT).show()
-                            }
+                            Toast.makeText(this, "${tappedIndex + 1}번째 인물 보정 중 ✨", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         // 2. 얼굴 제외한 다른 영역(배경/몸 등) 터치 -> 150ms 후 시원하게 원본 비교 실행!
