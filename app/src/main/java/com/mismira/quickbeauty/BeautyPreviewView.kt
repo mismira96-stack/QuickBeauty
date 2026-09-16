@@ -42,6 +42,9 @@ class BeautyPreviewView @JvmOverloads constructor(
     fun setSource(bitmap: Bitmap?, landmarks: BeautyLandmarks?) {
         this.sourceBitmap = bitmap
         this.landmarks = landmarks
+        // 새 사진을 열면 포커스 링은 숨기고, 얼굴을 직접 탭했을 때만 표시한다.
+        handler?.removeCallbacks(fadeOutRunnable)
+        focusRingAlpha = 0f
         this.vertsDirty = true
         invalidate()
     }

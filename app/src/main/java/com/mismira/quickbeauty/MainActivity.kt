@@ -376,10 +376,6 @@ class MainActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
                 previewView.setSource(bmp, landmarks)
                 previewView.setParams(params)
-                if (landmarks.allFaces.size > 1) {
-                    previewView.showFocusIndicator()
-                    Toast.makeText(this@MainActivity, "두 명 이상 감지됨 (얼굴을 터치하여 전환 가능)", Toast.LENGTH_SHORT).show()
-                }
                 showCoachMarkIfNeeded()
             }
         }
