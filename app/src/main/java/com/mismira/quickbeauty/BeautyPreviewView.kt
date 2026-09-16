@@ -186,27 +186,17 @@ class BeautyPreviewView @JvmOverloads constructor(
 
     private fun drawFaceIndicators(canvas: Canvas, landmarks: BeautyLandmarks, left: Float, top: Float, scale: Float) {
         val selectedIdx = landmarks.selectedFaceIndex
-        for (face in landmarks.allFaces) {
-            val isSelected = face.index == selectedIdx
-            val cx = left + face.center.x * scale
-            val cy = top + face.center.y * scale
-            val r = (max(face.bounds.width(), face.bounds.height()) * 0.55f * scale).coerceAtLeast(30f)
+        val face = landmarks.allFaces.firstOrNull { it.index == selectedIdx } ?: return
+        val cx = left + face.center.x * scale
+        val cy = top + face.center.y * scale
+        val r = (max(face.bounds.width(), face.bounds.height()) * 0.55f * scale).coerceAtLeast(30f)
 
-            val baseAlpha = (focusRingAlpha * 255).toInt().coerceIn(0, 255)
-            if (isSelected) {
-                // 선택된 얼굴: 선명한 일렉트릭 블루 링
-                indicatorPaint.color = Color.parseColor("#3B82F6")
-                indicatorPaint.alpha = baseAlpha
-                indicatorPaint.strokeWidth = 3f * resources.displayMetrics.density
-                canvas.drawCircle(cx, cy, r, indicatorPaint)
-            } else {
-                // 다른 얼굴: 부드러운 반투명 화이트 링 (터치 전환 유도)
-                indicatorPaint.color = Color.WHITE
-                indicatorPaint.alpha = (baseAlpha * 0.60f).toInt()
-                indicatorPaint.strokeWidth = 1.8f * resources.displayMetrics.density
-                canvas.drawCircle(cx, cy, r, indicatorPaint)
-            }
-        }
+        // 사용자가 탭한 현재 보정 대상 하나만 표시해 화면이 복잡해지지 않도록 한다.
+        val baseAlpha = (focusRingAlpha * 255).toInt().coerceIn(0, 255)
+        indicatorPaint.color = Color.parseColor("#3B82F6")
+        indicatorPaint.alpha = baseAlpha
+        indicatorPaint.strokeWidth = 3f * resources.displayMetrics.density
+        canvas.drawCircle(cx, cy, r, indicatorPaint)
     }
 
     /**
