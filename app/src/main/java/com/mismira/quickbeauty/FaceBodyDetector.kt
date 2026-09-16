@@ -51,6 +51,8 @@ class FaceBodyDetector {
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
                 .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+                // 원거리/단체 사진의 작은 얼굴도 감지할 수 있도록 최소 얼굴 크기 완화
+                .setMinFaceSize(0.04f)
                 .build()
             faceDetector = FaceDetection.getClient(faceOptions)
 
