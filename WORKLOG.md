@@ -162,13 +162,25 @@ app/src/main/java/com/mismira/quickbeauty/
   - 비선택 얼굴: 부드러운 반투명 화이트 링 (터치 전환 유도)
   - 2.5초 후 자연스러운 페이드아웃 애니메이션으로 사진 감상 방해 최소화.
 
+#### ③ 얼굴길이(Face Length) 하관 동안 단축 알고리즘 안정화 & 왜곡 원천 차단
+- **기존 문제 분석**:
+  - **이마/머리 위 배경 단층 왜곡**: 두상 밸런스를 맞추려던 이마 상단 하향 변위(`downRatio`)로 인해 머리핀(리본) 및 머리 뒤 배경(벤치/벽)이 아래로 쿵 떨어지며 계단식 단절 왜곡 발생.
+  - **티셔츠/옷깃 빨림 현상**: 턱 밑 감쇠 범위(`neckSpan = fh * 0.35f`)가 너무 길어, 아기처럼 목이 짧은 체형에서 티셔츠 넥라인과 줄무늬 가슴팍이 턱 쪽으로 쑥 빨려 올라가며 옷이 찌그러짐.
+  - **랜드마크 순서 역전 위험**: 웃는 표정이나 아기 얼굴에서 `chinY`, `mouthY`, `noseBaseY` 간격이 극도로 좁아질 때 구간 매핑 오류 발생.
+- **해결 방안**:
+  - **이마/배경 하향 변위 완전 삭제**: 머리 위 리본 및 배경 벤치 왜곡 0% (완전 무변형 보존).
+  - **안전 기하학 클램핑 (`safeNoseY < safeMouthY < safeChinY`)**: 어떤 표정이나 얼굴 각도에서도 항상 단조 증가하는 인체 기하학적 순서 보장.
+  - **초근접 턱 밑 감쇠 (`neckSpan = min(fh * 0.12f, 25f)`)**: 턱선 바로 아래 10~25px 내에서 리프팅을 0으로 급격 감쇠시켜 **티셔츠 넥라인/가슴팍 변위 0.0% 완벽 차단**.
+  - **턱 폭 일체형 코사인 스무딩**: 턱 중앙만 뾰족하게 파이는 현상을 없애고 턱선 전체가 매끄럽게 올라가도록 확장.
+
 ---
 
 ### 3) 품질 검증 결과
-- **단위 테스트 (Unit Tests)**: 11건 전체 통과 (`BUILD SUCCESSFUL`)
+- **단위 테스트 (Unit Tests)**: 12건 전체 통과 (`BUILD SUCCESSFUL`)
   - `testSmallPersonStrictClampingPreventsLegDistortion`: 소형 인물에서 어깨 100 최대 적용 시 다리/바닥 버텍스 변위 0.0f 검증 통과.
+  - `testFaceLengthDoesNotDistortForeheadAndClothes`: 얼굴길이 100 최대 적용 시 이마 위 배경(변위 0.0f) 및 턱 아래 옷 영역(변위 0.0f) 무왜곡 검증 통과.
   - `testMultiFaceSetupAndFaceRatio`: 다중 인물 FaceInfo 등록 및 faceRatio 계산 검증 통과.
-- **릴리즈 빌드 검증**: `assembleRelease` 에러 없이 빌드 성공.
+- **릴리즈 빌드 검증**: `assembleRelease` 및 `bundleRelease` 에러 없이 빌드 성공.
 - **실기기 동작 검증**: Samsung Galaxy 실기기(`R5KL503VHQR`)에 릴리즈 패키지 설치 및 실행 확인, 프로세스 정상 상주 확인 완료.
 
 

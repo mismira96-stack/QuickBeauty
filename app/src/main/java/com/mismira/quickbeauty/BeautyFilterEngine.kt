@@ -100,14 +100,20 @@ object BeautyFilterEngine {
         val maxJawPush = fw * 0.060f * chinSlimFactor * scaleDamping
 
         // 3. 얼굴 세로 길이 축소 (하관 리프팅 / 긴 얼굴 단축) 파라미터
-        val maxChinLift = fh * 0.075f * faceLengthFactor * scaleDamping
-        val lengthInnerW = fw * 0.40f
-        val lengthOuterW = fw * 0.75f
-        val chinToMouthSpan = max(10f, chinY - mouthY)
-        val mouthToNoseSpan = max(10f, mouthY - noseBaseY)
-        val neckSpan = max(10f, neckY - chinY)
-        val foreheadTopY = fcY - fh * 0.50f
-        val foreheadSpan = max(10f, fh * 0.30f)
+        // 아기나 웃는 표정에서도 랜드마크 Y 순서(코 < 입 < 턱)가 뒤집히지 않도록 안전 클램핑
+        val safeNoseY = min(noseBaseY, fcY + fh * 0.15f)
+        val safeChinY = max(chinY, safeNoseY + fh * 0.30f)
+        val safeMouthY = mouthY.coerceIn(safeNoseY + fh * 0.08f, safeChinY - fh * 0.06f)
+
+        val chinToMouthSpan = max(10f, safeChinY - safeMouthY)
+        val mouthToNoseSpan = max(10f, safeMouthY - safeNoseY)
+        // 턱 밑 감쇠 폭: 아기나 목이 짧은 체형에서 티셔츠/옷깃이 위로 빨려 올라가지 않도록 초근접 영역으로 제한
+        val neckSpan = min(fh * 0.12f, 25f).coerceAtLeast(8f)
+        val safeNeckY = safeChinY + neckSpan
+
+        val maxChinLift = fh * 0.065f * faceLengthFactor * scaleDamping
+        val lengthInnerW = fw * 0.30f
+        val lengthOuterW = fw * 0.85f
 
         // 4. 어깨 넓히기 (직각 어깨) 파라미터 - 상체 보정력 보존 & 다리 침범 차단
         val shoulderCenterY: Float
@@ -226,8 +232,11 @@ object BeautyFilterEngine {
                 }
 
                 // ==========================================
-                // 3. 얼굴 세로 길이 축소 (Face Length / Chin Lift)
-                // 턱 끝을 끌어올려 긴 하관/인중을 동안 비율로 단축
+                // ==========================================
+                // 3. 얼굴 세로 길이 축소 (Face Length / 하관 동안 단축)
+                // 코 밑 ~ 턱 끝을 위로 부드럽게 리프팅하여 긴 하관/중안부 개선
+                // 머리 위 배경 왜곡 방지를 위해 이마 하향 변위는 완전 제거
+                // 목 및 티셔츠/옷깃 침범 방지를 위해 턱 밑 감쇠를 초근접 영역(safeNeckY)으로 엄격 제한
                 // ==========================================
                 if (faceLengthFactor > 0.001f && hasFace) {
                     val absDx = abs(origX - fcX)
@@ -242,35 +251,27 @@ object BeautyFilterEngine {
 
                     if (xWeight > 0f) {
                         var liftRatio = 0f
-                        var downRatio = 0f
 
                         when {
-                            // A. 턱 끝 ~ 목: 턱끝에서 최대 리프팅, 목 쪽으로 자연스럽게 감쇠
-                            origY >= chinY && origY <= neckY -> {
-                                val t = (neckY - origY) / neckSpan
+                            // A. 턱 끝 ~ 턱 바로 밑: 턱 끝(1.0)에서 초근접 턱밑(0.0)으로 급격 감쇠 -> 옷/가슴 침범 0%
+                            origY >= safeChinY && origY <= safeNeckY -> {
+                                val t = (safeNeckY - origY) / neckSpan
                                 liftRatio = t * t * (3f - 2f * t)
                             }
-                            // B. 입술 ~ 턱 끝: 턱 끝(1.0)에서 입술(0.25)로 감쇠하며 턱 길이 단축
-                            origY in mouthY..chinY -> {
-                                val t = (origY - mouthY) / chinToMouthSpan
-                                liftRatio = 0.25f + 0.75f * (t * t * (3f - 2f * t))
+                            // B. 입술 ~ 턱 끝: 턱 끝(1.0)에서 입술(0.35)로 감쇠하며 턱 길이 단축
+                            origY in safeMouthY..safeChinY -> {
+                                val t = (origY - safeMouthY) / chinToMouthSpan
+                                liftRatio = 0.35f + 0.65f * (t * t * (3f - 2f * t))
                             }
-                            // C. 코 밑 ~ 입술: 입술(0.25)에서 코 밑(0.0)으로 감쇠하며 인중 살짝 단축
-                            origY in noseBaseY..mouthY -> {
-                                val t = (origY - noseBaseY) / mouthToNoseSpan
-                                liftRatio = 0.25f * (t * t * (3f - 2f * t))
-                            }
-                            // D. 이마 상단부: 위쪽에서 살짝 내려 전체적인 두상 밸런스 유지
-                            origY < foreheadTopY && origY >= (foreheadTopY - foreheadSpan) -> {
-                                val t = (origY - (foreheadTopY - foreheadSpan)) / foreheadSpan
-                                downRatio = (1f - t) * 0.18f
+                            // C. 코 밑 ~ 입술: 입술(0.35)에서 코 밑(0.0)으로 감쇠하며 인중 살짝 단축
+                            origY in safeNoseY..safeMouthY -> {
+                                val t = (origY - safeNoseY) / mouthToNoseSpan
+                                liftRatio = 0.35f * (t * t * (3f - 2f * t))
                             }
                         }
 
                         if (liftRatio > 0f) {
                             currY -= maxChinLift * liftRatio * xWeight
-                        } else if (downRatio > 0f) {
-                            currY += maxChinLift * downRatio * xWeight
                         }
                     }
                 }

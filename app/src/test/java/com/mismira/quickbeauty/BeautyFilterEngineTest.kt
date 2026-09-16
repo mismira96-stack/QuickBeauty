@@ -138,6 +138,38 @@ class BeautyFilterEngineTest {
     }
 
     @Test
+    fun testFaceLengthDoesNotDistortForeheadAndClothes() {
+        val w = 1000
+        val h = 2000
+        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+
+        val params = BeautyAdjustParams(0, 0, 0, 100, 0)
+        val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(0, 0, 0, 0, 0))
+
+        val fcY = lm.faceCenter.y
+        val fh = lm.faceBounds.height()
+        val chinY = lm.chinPoint.y
+
+        for (i in warped.indices step 2) {
+            val origX = original[i]
+            val origY = original[i + 1]
+
+            // 1. 머리 위쪽/배경 영역: 변위가 0이어야 함 (단층선/왜곡 완전 제거)
+            if (origY < (fcY - fh * 0.55f)) {
+                val dy = kotlin.math.abs(warped[i + 1] - origY)
+                Assert.assertEquals("Forehead background must have 0 displacement at Y=$origY", 0.0f, dy, 0.001f)
+            }
+
+            // 2. 턱 아래 옷/가슴 영역 (턱 끝 + 30px 이후): 변위가 0이어야 함 (옷깃/티셔츠 빨림 완전 차단)
+            if (origY > (chinY + 30f)) {
+                val dy = kotlin.math.abs(warped[i + 1] - origY)
+                Assert.assertEquals("Clothes/chest below chin must have 0 displacement at Y=$origY", 0.0f, dy, 0.001f)
+            }
+        }
+    }
+
+    @Test
     fun testComputeWarpedVerticesWithShoulderBroadeningExpandsShoulders() {
         val w = 1000
         val h = 1000
