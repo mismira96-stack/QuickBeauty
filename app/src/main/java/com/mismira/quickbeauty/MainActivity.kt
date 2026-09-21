@@ -16,11 +16,13 @@ import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
@@ -50,6 +52,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
 
     private lateinit var topBar: View
+    private lateinit var topBarStatusBarSpacer: View
+    private lateinit var topBarContent: View
     private lateinit var bottomControlPanel: View
     private lateinit var btnReset: View
     private lateinit var txtParamValue: TextView
@@ -88,9 +92,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_quick_beauty)
+
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
 
         initViews()
         applyWindowInsets()
@@ -102,6 +114,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun initViews() {
         topBar = findViewById(R.id.topBar)
+        topBarStatusBarSpacer = findViewById(R.id.topBarStatusBarSpacer)
+        topBarContent = findViewById(R.id.topBarContent)
         bottomControlPanel = findViewById(R.id.bottomControlPanel)
         previewView = findViewById(R.id.previewView)
         badgeOriginal = findViewById(R.id.badgeOriginal)
@@ -215,24 +229,39 @@ class MainActivity : AppCompatActivity() {
     private fun applyWindowInsets() {
         val root = findViewById<View>(R.id.rootLayout) ?: return
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val sysBarInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutoutInsets = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val topInset = max(sysBarInsets.top, cutoutInsets.top)
+            val leftInset = max(sysBarInsets.left, cutoutInsets.left)
+            val rightInset = max(sysBarInsets.right, cutoutInsets.right)
 
-            topBar.updatePadding(left = dpToPx(16), top = insets.top, right = dpToPx(16), bottom = 0)
-            topBar.updateLayoutParams {
-                height = insets.top + dpToPx(56)
+            // 상태바/노치 높이만큼 스페이서 높이 설정 -> 툴바 컨텐츠가 상태바 아래로 안전하게 위치하여 잘림 방지
+            topBarStatusBarSpacer.updateLayoutParams {
+                height = topInset
             }
 
+            // 가로 모드 또는 컷아웃(노치) 영역 대비 좌우 안전 여백 적용
+            topBarContent.updatePadding(
+                left = dpToPx(16) + leftInset,
+                top = 0,
+                right = dpToPx(16) + rightInset,
+                bottom = 0
+            )
+
             // 하단 패널 2단 초슬림화: 태스크바 및 제스처 바 여백 확보
-            val bottomPadding = max(insets.bottom, dpToPx(48)) + dpToPx(8)
+            val bottomInset = max(sysBarInsets.bottom, cutoutInsets.bottom)
+            val bottomPadding = max(bottomInset, dpToPx(48)) + dpToPx(8)
             bottomControlPanel.updatePadding(
-                left = dpToPx(14),
+                left = dpToPx(14) + leftInset,
                 top = dpToPx(10),
-                right = dpToPx(14),
+                right = dpToPx(14) + rightInset,
                 bottom = bottomPadding
             )
 
             windowInsets
         }
+        ViewCompat.requestApplyInsets(root)
+        root.post { ViewCompat.requestApplyInsets(root) }
     }
 
     private fun loadSavedPreferences() {
