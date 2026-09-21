@@ -71,11 +71,18 @@ object BeautyFilterEngine {
         val hasBody = landmarks?.canAdjustBody(meshW, meshH) == true
 
         val fc = landmarks?.faceCenter
-        val fcX = fc?.x ?: (width * 0.5f)
-        val fcY = fc?.y ?: (height * 0.35f)
-
-        val fw = max(20f, landmarks?.faceBounds?.width() ?: (width * 0.35f))
-        val fh = max(20f, landmarks?.faceBounds?.height() ?: (height * 0.35f))
+        val poseShoulderSpan = if (hasBody) {
+            abs(landmarks!!.rightShoulder.x - landmarks.leftShoulder.x)
+        } else 0f
+        val fw = if (hasFace) max(20f, landmarks!!.faceBounds.width())
+            else max(20f, poseShoulderSpan / 2.5f)
+        val fh = if (hasFace) max(20f, landmarks!!.faceBounds.height())
+            else max(20f, min(poseShoulderSpan / 1.5f, (landmarks?.bodyBounds?.height() ?: 0f) / 2.8f))
+        val poseShoulderY = if (hasBody) {
+            (landmarks!!.leftShoulder.y + landmarks.rightShoulder.y) * 0.5f
+        } else height * 0.35f
+        val fcX = if (hasFace) fc!!.x else (landmarks?.bodyBounds?.centerX() ?: width * 0.5f)
+        val fcY = if (hasFace) fc!!.y else poseShoulderY - fh * 0.85f
 
         // 인물 크기 비율 기반 왜곡 방지 감쇠 계수 (인물이 작을수록 배경 뒤틀림 방지를 위해 미세 보정 강도 조절)
         val faceRatio = landmarks?.faceRatio ?: (max(fw, fh) / min(width, height))
@@ -92,7 +99,7 @@ object BeautyFilterEngine {
         val maxHeadScale = 0.085f * faceSizeFactor * scaleDamping
 
         // 2. 턱선 V라인 슬림 파라미터
-        val chinY = landmarks?.chinPoint?.y ?: (fcY + fh * 0.45f)
+        val chinY = if (hasFace) landmarks!!.chinPoint.y else poseShoulderY - fh * 0.40f
         val mouthY = landmarks?.mouthPoint?.y ?: (fcY + fh * 0.28f)
         val noseBaseY = landmarks?.noseBase?.y ?: (fcY + fh * 0.08f)
         val neckY = chinY + fh * 0.35f

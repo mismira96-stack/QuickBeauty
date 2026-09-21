@@ -59,7 +59,7 @@ class BeautyFilterEngineTest {
         lm.chinPoint.set(500f, 750f)
         lm.hasFace = true
         lm.hasBody = true
-        lm.hasMatchedPose = true
+        lm.hasReliablePose = true
         lm.leftShoulder.set(300f, 800f)
         lm.rightShoulder.set(700f, 800f)
         lm.leftHip.set(350f, 1150f)
@@ -76,8 +76,67 @@ class BeautyFilterEngineTest {
         Assert.assertTrue(warped.indices.step(2).any { kotlin.math.abs(warped[it] - original[it]) > 0.1f })
         Assert.assertTrue(lm.scaleTo(2000, 4000).canAdjustBody())
 
-        lm.hasMatchedPose = false
+        lm.hasReliablePose = false
         Assert.assertFalse(lm.canAdjustBody())
+    }
+
+    @Test
+    fun testMultiPersonWithoutMatchedPoseDoesNotInventBody() {
+        val lm = detectedFaceLandmarks(1000, 1000)
+        lm.hasBody = false
+        lm.allFaces.add(BeautyLandmarks.FaceInfo(index = 0))
+        lm.allFaces.add(BeautyLandmarks.FaceInfo(index = 1))
+        lm.setupDefaultsIfEmpty()
+        Assert.assertFalse(lm.hasBody)
+        Assert.assertFalse(lm.canAdjustBody())
+
+        lm.hasReliablePose = true
+        lm.setupDefaultsIfEmpty()
+        Assert.assertTrue(lm.hasBody)
+    }
+
+    @Test
+    fun testFaceCoveredButReliablePoseAllowsBodyOnlyWarp() {
+        val lm = BeautyLandmarks(1000, 2000)
+        lm.hasBody = true
+        lm.hasReliablePose = true
+        lm.leftShoulder.set(350f, 800f)
+        lm.rightShoulder.set(650f, 800f)
+        lm.leftHip.set(390f, 1120f)
+        lm.rightHip.set(610f, 1120f)
+        lm.bodyBounds.set(320f, 800f, 680f, 1200f)
+        Assert.assertFalse(lm.hasFace)
+        Assert.assertFalse(lm.canAdjust())
+        Assert.assertTrue(lm.canAdjustBody())
+
+        val faceParams = BeautyAdjustParams(0, 100, 100, 100, 0, 0)
+        Assert.assertFalse(BeautyFilterEngine.hasSupportedWarp(lm, faceParams))
+        val bodyParams = BeautyAdjustParams(0, 0, 0, 0, 100, 100)
+        Assert.assertTrue(BeautyFilterEngine.hasSupportedWarp(lm, bodyParams))
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, bodyParams)
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, BeautyAdjustParams())
+        Assert.assertTrue(warped.indices.step(2).any { kotlin.math.abs(warped[it] - original[it]) > 0.1f })
+        Assert.assertTrue(lm.scaleTo(2000, 4000).canAdjustBody())
+    }
+
+    @Test
+    fun testSmallFaceCoveredPersonStillHasVisibleBodyWarp() {
+        // 실기기 전신 사진: 얼굴은 가려졌지만 750x1000 사진에서 어깨 폭 56px을 신뢰성 있게 검출.
+        val lm = BeautyLandmarks(750, 1000)
+        lm.hasBody = true
+        lm.hasReliablePose = true
+        lm.leftShoulder.set(424f, 579f)
+        lm.rightShoulder.set(367f, 588f)
+        lm.leftHip.set(417f, 680f)
+        lm.rightHip.set(389f, 683f)
+        lm.bodyBounds.set(361f, 579f, 430f, 694f)
+
+        Assert.assertFalse(lm.canAdjust())
+        Assert.assertTrue(lm.canAdjustBody())
+        val params = BeautyAdjustParams(0, 0, 0, 0, 100, 100)
+        val warped = BeautyFilterEngine.computeWarpedVertices(750, 1000, lm, params)
+        val original = BeautyFilterEngine.computeWarpedVertices(750, 1000, lm, BeautyAdjustParams())
+        Assert.assertTrue(warped.indices.step(2).any { kotlin.math.abs(warped[it] - original[it]) > 0.1f })
     }
 
     @Test

@@ -143,8 +143,9 @@ class FaceBodyDetector {
 
                     // 2. 포즈 분석 파싱 (키메라 방지: 선택된 얼굴과 일치하는 경우에만 바인딩)
                     try {
-                        if (poseResult != null && landmarks.hasFace) {
-                            parsePoseIfMatched(poseResult, landmarks, w, h)
+                        if (poseResult != null) {
+                            if (landmarks.hasFace) parsePoseIfMatched(poseResult, landmarks, w, h)
+                            else parsePoseWithoutFace(poseResult, landmarks, w, h)
                         }
                     } catch (e: Throwable) {
                         Log.w(TAG, "포즈 분석 중 예외: ${e.message}")
@@ -174,7 +175,7 @@ class FaceBodyDetector {
         landmarks.applyFaceInfo(targetFace)
 
         landmarks.hasBody = false
-        landmarks.hasMatchedPose = false
+        landmarks.hasReliablePose = false
         if (pose != null) {
             parsePoseIfMatched(pose, landmarks, landmarks.imageWidth, landmarks.imageHeight)
         }
@@ -237,6 +238,43 @@ class FaceBodyDetector {
         return info
     }
 
+    /** 얼굴이 가려져도 실제 어깨·골반 포즈가 충분히 뚜렷하면 체형 보정만 허용한다. */
+    private fun parsePoseWithoutFace(pose: Pose, landmarks: BeautyLandmarks, width: Int, height: Int) {
+        val leftShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER) ?: return
+        val rightShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER) ?: return
+        val leftHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP) ?: return
+        val rightHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP) ?: return
+        if (listOf(leftShoulder, rightShoulder, leftHip, rightHip).any { it.inFrameLikelihood < 0.9f }) return
+
+        val span = kotlin.math.abs(rightShoulder.position.x - leftShoulder.position.x)
+        val shoulderX = (leftShoulder.position.x + rightShoulder.position.x) * 0.5f
+        val shoulderY = (leftShoulder.position.y + rightShoulder.position.y) * 0.5f
+        val hipSpan = kotlin.math.abs(rightHip.position.x - leftHip.position.x)
+        val hipX = (leftHip.position.x + rightHip.position.x) * 0.5f
+        val hipY = (leftHip.position.y + rightHip.position.y) * 0.5f
+        if (span < max(40f, width * 0.06f) || span > width * 0.75f ||
+            hipSpan !in (span * 0.25f)..(span * 1.6f) ||
+            hipY - shoulderY < max(span * 0.45f, height * 0.04f) ||
+            kotlin.math.abs(hipX - shoulderX) > span * 0.9f ||
+            kotlin.math.abs(leftShoulder.position.y - rightShoulder.position.y) > span * 0.75f ||
+            shoulderY < 0f || hipY > height.toFloat()
+        ) return
+
+        landmarks.hasBody = true
+        landmarks.hasReliablePose = true
+        landmarks.leftShoulder.set(leftShoulder.position.x, leftShoulder.position.y)
+        landmarks.rightShoulder.set(rightShoulder.position.x, rightShoulder.position.y)
+        landmarks.leftHip.set(leftHip.position.x, leftHip.position.y)
+        landmarks.rightHip.set(rightHip.position.x, rightHip.position.y)
+        landmarks.bodyTopY = min(leftShoulder.position.y, rightShoulder.position.y)
+        landmarks.bodyBottomY = min(height.toFloat(), max(leftHip.position.y, rightHip.position.y) + span * 0.20f)
+        landmarks.bodyCenterY = (landmarks.bodyTopY + landmarks.bodyBottomY) * 0.5f
+        landmarks.bodyBounds.set(min(leftShoulder.position.x, rightShoulder.position.x) - span * 0.10f,
+            landmarks.bodyTopY,
+            max(leftShoulder.position.x, rightShoulder.position.x) + span * 0.10f,
+            landmarks.bodyBottomY)
+    }
+
     private fun parsePoseIfMatched(pose: Pose, landmarks: BeautyLandmarks, width: Int, height: Int) {
         val leftShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)
         val rightShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)
@@ -269,7 +307,7 @@ class FaceBodyDetector {
         }
 
         landmarks.hasBody = true
-        landmarks.hasMatchedPose = true
+        landmarks.hasReliablePose = true
         landmarks.leftShoulder.set(leftShoulder.position.x, leftShoulder.position.y)
         landmarks.rightShoulder.set(rightShoulder.position.x, rightShoulder.position.y)
 

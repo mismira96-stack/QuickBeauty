@@ -471,7 +471,8 @@ class MainActivity : AppCompatActivity() {
                 if (canAdjustBody) "얼굴 보정 제한 · 체형/쿨톤 가능"
                 else "얼굴이 작아 형태 보정 불가 · 쿨톤 가능"
             } else {
-                "얼굴 미감지: 형태 보정 불가 · 쿨톤 가능"
+                if (canAdjustBody) "얼굴 미감지 · 체형/쿨톤 가능"
+                else "얼굴 미감지: 형태 보정 불가 · 쿨톤 가능"
             }
             hintCoachMark.alpha = 1f
             hintCoachMark.visibility = View.VISIBLE
