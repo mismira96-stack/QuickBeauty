@@ -72,6 +72,7 @@ class BeautyLandmarks(
 
     // 신체 정보 (선택된 얼굴과 물리적으로 일치하는 포즈)
     var hasBody: Boolean = false
+    var hasMatchedPose: Boolean = false
     val bodyBounds = Rect()
     val leftShoulder = Point()
     val rightShoulder = Point()
@@ -98,6 +99,15 @@ class BeautyLandmarks(
         val minWidth = max(100f, imageWidth * 3f / meshW)
         val minHeight = max(100f, imageHeight * 3f / meshH)
         return faceBounds.width() >= minWidth && faceBounds.height() >= minHeight
+    }
+
+    /** 작은 얼굴이라도 실제로 일치한 포즈의 상체가 충분히 크면 체형 보정은 허용한다. */
+    fun canAdjustBody(meshW: Int = 40, meshH: Int = 40): Boolean {
+        if (!hasFace || !hasBody || imageWidth <= 0 || imageHeight <= 0) return false
+        if (canAdjust(meshW, meshH)) return true
+        if (!hasMatchedPose) return false
+        return bodyBounds.width() >= imageWidth * 3f / meshW &&
+            bodyBounds.height() >= imageHeight * 2f / meshH
     }
 
     /**
@@ -161,6 +171,7 @@ class BeautyLandmarks(
         res.noseBase.set(noseBase.x * sx, noseBase.y * sy)
 
         res.hasBody = this.hasBody
+        res.hasMatchedPose = this.hasMatchedPose
         res.bodyBounds.set(bodyBounds.left * sx, bodyBounds.top * sy, bodyBounds.right * sx, bodyBounds.bottom * sy)
         res.leftShoulder.set(leftShoulder.x * sx, leftShoulder.y * sy)
         res.rightShoulder.set(rightShoulder.x * sx, rightShoulder.y * sy)

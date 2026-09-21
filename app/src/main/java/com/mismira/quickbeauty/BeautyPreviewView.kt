@@ -108,8 +108,7 @@ class BeautyPreviewView @JvmOverloads constructor(
             paint.colorFilter = null
         }
 
-        val needWarp = currentLandmarks.canAdjust() &&
-            (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0)
+        val needWarp = BeautyFilterEngine.hasSupportedWarp(currentLandmarks, params)
         if (!needWarp) {
             canvas.save()
             canvas.translate(left, top)

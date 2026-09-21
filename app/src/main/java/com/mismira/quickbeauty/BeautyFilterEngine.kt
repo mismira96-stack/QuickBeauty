@@ -15,6 +15,13 @@ object BeautyFilterEngine {
     const val MESH_W = 40
     const val MESH_H = 40
 
+    fun hasSupportedWarp(landmarks: BeautyLandmarks?, params: BeautyAdjustParams): Boolean {
+        val faceRequested = params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0
+        val bodyRequested = params.shoulder > 0 || params.bodySlim > 0
+        return (faceRequested && landmarks?.canAdjust() == true) ||
+            (bodyRequested && landmarks?.canAdjustBody() == true)
+    }
+
     fun getCoolToneMatrixArray(coolTone: Int): FloatArray {
         if (coolTone <= 0) {
             return floatArrayOf(
@@ -61,7 +68,7 @@ object BeautyFilterEngine {
         val bodySlimFactor = (params.bodySlim / 100.0f).coerceIn(0f, 1f)
 
         val hasFace = landmarks?.canAdjust(meshW, meshH) == true
-        val hasBody = hasFace && landmarks?.hasBody == true
+        val hasBody = landmarks?.canAdjustBody(meshW, meshH) == true
 
         val fc = landmarks?.faceCenter
         val fcX = fc?.x ?: (width * 0.5f)
@@ -375,7 +382,7 @@ object BeautyFilterEngine {
             paint.colorFilter = ColorMatrixColorFilter(cm)
         }
 
-        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0) && landmarks?.canAdjust() == true
+        val needWarp = hasSupportedWarp(landmarks, params)
         if (needWarp) {
             val validLandmarks = landmarks!!
             val scaledLandmarks = if (validLandmarks.imageWidth == w && validLandmarks.imageHeight == h) {

@@ -52,6 +52,35 @@ class BeautyFilterEngineTest {
     }
 
     @Test
+    fun testSmallFaceWithMatchedLargePoseKeepsBodyControlsAvailable() {
+        val lm = BeautyLandmarks(1000, 2000)
+        lm.faceBounds.set(460f, 650f, 540f, 750f)
+        lm.faceCenter.set(500f, 700f)
+        lm.chinPoint.set(500f, 750f)
+        lm.hasFace = true
+        lm.hasBody = true
+        lm.hasMatchedPose = true
+        lm.leftShoulder.set(300f, 800f)
+        lm.rightShoulder.set(700f, 800f)
+        lm.leftHip.set(350f, 1150f)
+        lm.rightHip.set(650f, 1150f)
+        lm.bodyBounds.set(280f, 800f, 720f, 1250f)
+
+        Assert.assertFalse(lm.canAdjust())
+        Assert.assertTrue(lm.canAdjustBody())
+        Assert.assertFalse(BeautyFilterEngine.hasSupportedWarp(lm, BeautyAdjustParams(0, 100, 0, 0, 0, 0)))
+        val bodyParams = BeautyAdjustParams(0, 0, 0, 0, 100, 100)
+        Assert.assertTrue(BeautyFilterEngine.hasSupportedWarp(lm, bodyParams))
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, bodyParams)
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, BeautyAdjustParams())
+        Assert.assertTrue(warped.indices.step(2).any { kotlin.math.abs(warped[it] - original[it]) > 0.1f })
+        Assert.assertTrue(lm.scaleTo(2000, 4000).canAdjustBody())
+
+        lm.hasMatchedPose = false
+        Assert.assertFalse(lm.canAdjustBody())
+    }
+
+    @Test
     fun testShoulderAndBodyWarpKeepsImageBorderFixed() {
         val lm = detectedFaceLandmarks(1000, 1000)
         val warped = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm,

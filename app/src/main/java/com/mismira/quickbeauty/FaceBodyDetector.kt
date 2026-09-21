@@ -98,8 +98,10 @@ class FaceBodyDetector {
 
                     // 1. 다중 얼굴 분석 및 스마트 스코어링
                     try {
-                        if (faceTask.isSuccessful && !faceTask.result.isNullOrEmpty()) {
-                            val faces = faceTask.result!!
+                        val faces = if (faceTask.isSuccessful) {
+                            faceTask.result.orEmpty().filter { isSelectableFace(it, w, h) }
+                        } else emptyList()
+                        if (faces.isNotEmpty()) {
                             val centerX = w * 0.5f
                             val centerY = h * 0.40f
                             val maxDist = kotlin.math.sqrt(centerX * centerX + centerY * centerY)
@@ -131,9 +133,7 @@ class FaceBodyDetector {
                             landmarks.allFaces.clear()
                             landmarks.allFaces.addAll(faceInfoList)
                             landmarks.selectedFaceIndex = 0
-
-                            val primary = faceInfoList[0]
-                            landmarks.applyFaceInfo(primary)
+                            landmarks.applyFaceInfo(faceInfoList[0])
                         }
                     } catch (e: Throwable) {
                         Log.w(TAG, "얼굴 분석 중 예외: ${e.message}")
@@ -174,6 +174,7 @@ class FaceBodyDetector {
         landmarks.applyFaceInfo(targetFace)
 
         landmarks.hasBody = false
+        landmarks.hasMatchedPose = false
         if (pose != null) {
             parsePoseIfMatched(pose, landmarks, landmarks.imageWidth, landmarks.imageHeight)
         }
@@ -188,6 +189,13 @@ class FaceBodyDetector {
         val overlap = overlapW.toFloat() * overlapH
         val smallerArea = min(a.width() * a.height(), b.width() * b.height()).toFloat()
         return smallerArea > 0f && overlap / smallerArea > 0.5f
+    }
+
+    private fun isSelectableFace(face: Face, imageWidth: Int, imageHeight: Int): Boolean {
+        val box = face.boundingBox
+        // 갤러리 캡처의 하단 썸네일처럼 작은 얼굴은 편집 대상에서 제외한다.
+        return box.width() >= max(60f, imageWidth * 0.035f) &&
+            box.height() >= max(60f, imageHeight * 0.035f)
     }
 
     private fun createFaceInfo(face: Face, originalIndex: Int, contourFace: Face?): BeautyLandmarks.FaceInfo {
@@ -252,13 +260,16 @@ class FaceBodyDetector {
             return
         }
 
-        // 2. 어깨 너비 이상치 방어 (아기/소형 인물인데 어깨가 지나치게 넓게 잡히는 오류 방지)
+        // 2. 얼굴이 작고 상체가 큰 사진은 허용하되, 어깨가 얼굴을 감싸지 않으면 다른 사람의 포즈로 본다.
         val rawSpan = kotlin.math.abs(rightShoulder.position.x - leftShoulder.position.x)
-        if (rawSpan > fw * 4.2f || rawSpan < fw * 0.6f) {
+        val shoulderLeftX = min(leftShoulder.position.x, rightShoulder.position.x)
+        val shoulderRightX = max(leftShoulder.position.x, rightShoulder.position.x)
+        if (rawSpan > fw * 6.0f || rawSpan < fw * 0.6f || fc.x !in shoulderLeftX..shoulderRightX) {
             return
         }
 
         landmarks.hasBody = true
+        landmarks.hasMatchedPose = true
         landmarks.leftShoulder.set(leftShoulder.position.x, leftShoulder.position.y)
         landmarks.rightShoulder.set(rightShoulder.position.x, rightShoulder.position.y)
 

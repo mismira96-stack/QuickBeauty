@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     private var touchDownX = 0f
     private var touchDownY = 0f
     private var isShowingOriginal = false
+    private var selectionToast: Toast? = null
     private val showOriginalRunnable = Runnable {
         isShowingOriginal = true
         previewView.setShowOriginal(true)
@@ -199,12 +200,11 @@ class MainActivity : AppCompatActivity() {
                             previewView.setSource(previewBitmap, lm)
                             updateAdjustmentAvailability()
                             previewView.showFocusIndicator()
-                            Toast.makeText(this, "${tappedIndex + 1}번째 인물 선택됨 ✨", Toast.LENGTH_SHORT).show()
+                            selectionToast?.cancel()
+                            selectionToast = Toast.makeText(this, "인물 선택됨 ✨", Toast.LENGTH_SHORT)
+                            selectionToast?.show()
                         } else {
                             previewView.showFocusIndicator()
-                            Toast.makeText(this,
-                                if (lm.canAdjust()) "${tappedIndex + 1}번째 인물 보정 중 ✨" else "얼굴이 작아 형태 보정은 건너뜁니다",
-                                Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         // 2. 얼굴 제외한 다른 영역(배경/몸 등) 터치 -> 150ms 후 시원하게 원본 비교 실행!
@@ -457,13 +457,19 @@ class MainActivity : AppCompatActivity() {
     private fun updateAdjustmentAvailability() {
         val lm = detectedLandmarks
         val canAdjustFace = lm?.canAdjust() == true
-        seekBarAdjust.isEnabled = currentTab == TAB_COOL_TONE || canAdjustFace
-        btnSave.isEnabled = lm != null && (canAdjustFace || params.coolTone > 0)
+        val canAdjustBody = lm?.canAdjustBody() == true
+        seekBarAdjust.isEnabled = when (currentTab) {
+            TAB_COOL_TONE -> true
+            TAB_SHOULDER, TAB_BODY_SLIM -> canAdjustBody
+            else -> canAdjustFace
+        }
+        btnSave.isEnabled = lm != null && (canAdjustFace || canAdjustBody || params.coolTone > 0)
         btnSave.alpha = if (btnSave.isEnabled) 1f else 0.5f
         if (lm != null && !canAdjustFace) {
             hintCoachMark.animate().cancel()
             hintCoachMark.text = if (lm.hasFace) {
-                "얼굴이 작아 형태 보정 불가 · 쿨톤 가능"
+                if (canAdjustBody) "얼굴 보정 제한 · 체형/쿨톤 가능"
+                else "얼굴이 작아 형태 보정 불가 · 쿨톤 가능"
             } else {
                 "얼굴 미감지: 형태 보정 불가 · 쿨톤 가능"
             }
@@ -475,7 +481,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyProgress(progress: Int) {
-        if (currentTab != TAB_COOL_TONE && detectedLandmarks?.canAdjust() != true) return
+        if (currentTab != TAB_COOL_TONE && !seekBarAdjust.isEnabled) return
         txtParamValue.text = progress.toString()
         when (currentTab) {
             TAB_COOL_TONE -> params.coolTone = progress
@@ -555,6 +561,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        selectionToast?.cancel()
         detector?.release()
     }
 }
