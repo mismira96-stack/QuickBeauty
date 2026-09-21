@@ -194,6 +194,17 @@ app/src/main/java/com/mismira/quickbeauty/
 - **1인 사진 원본 비교 통일**:
   - 인물이 1명일 때는 얼굴을 누르든 배경을 누르든 100% 원본 비교로 작동하여 조작 편의성 극대화.
 
+#### ⑥ 상단 헤더 바 시스템 인셋 & 스페이서 구조 개편 (Z Fold 및 상태바 겹침/잘림 버그 원천 해결)
+- **Android `RelativeLayout`의 `layout_centerVertical` 버그 해결**:
+  - `RelativeLayout`은 자식 뷰를 수직 중앙 정렬할 때 `paddingTop`을 무시하고 전체 높이 기준으로 계산하여, `개인정보 / 초기화 / 저장` 버튼이 상태바(0~105px) 내부로 기어올라가던 문제를 해결.
+- **구조적 2단 분리 레이아웃 적용**:
+  - `topBar`를 수직 `LinearLayout`으로 분리:
+    1. `topBarStatusBarSpacer`: 상태표시줄 및 펀치홀/노치 높이를 전담하는 투명 스페이서 (시스템 인셋 자동 반영).
+    2. `topBarContent`: 56dp 표준 높이의 독립 헤더. 내부 버튼들이 상태바 아래 56dp 영역 내에서만 안전하게 수직 정렬.
+- **실기기(Galaxy Z Fold SE) 실측 검증 완료**:
+  - 상태바(0~105px) 아래 134~223px 위치에 버튼 배치 완료 (약 30px 안전 여백 확보).
+  - 삼성 시스템 스크린샷의 상태바 자동 잘라내기 옵션 동작 시에도 헤더 및 버튼이 잘리지 않고 100% 온전히 보존됨.
+
 ---
 
 ### 3) 품질 검증 결과
@@ -203,6 +214,6 @@ app/src/main/java/com/mismira/quickbeauty/
   - `testSmilingBabyFaceLengthNoDistortionFixture`: 웃는 아기 얼굴 픽스처 회귀 테스트 통과.
   - `testMultiFaceSetupAndFaceRatio`: 다중 인물 FaceInfo 등록 및 faceRatio 계산 검증 통과.
 - **릴리즈 빌드 검증**: `assembleRelease` 및 `bundleRelease` (v1.0.4 / versionCode 7) 에러 없이 빌드 성공.
-- **실기기 동작 검증**: Samsung Galaxy 실기기(`R5KL503VHQR`)에 v1.0.4 릴리즈 패키지 설치 및 실행 확인, 프로세스 정상 상주 확인 완료.
+- **실기기 동작 검증**: Samsung Galaxy Z Fold SE 실기기(`R5KL503VHQR`)에 구버전 패키지 충돌 정리 후 v1.0.4 릴리즈 패키지 설치, 상태바 안전 여백 실측 및 실기기 정상 실행 확인 완료.
 
 
