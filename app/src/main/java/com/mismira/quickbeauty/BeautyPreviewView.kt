@@ -81,6 +81,7 @@ class BeautyPreviewView @JvmOverloads constructor(
         val top = (viewH - drawH) * 0.5f
         destRect.set(left, top, left + drawW, top + drawH)
 
+        val geometryChanged = left != lastLeft || top != lastTop || scale != lastScale
         lastLeft = left
         lastTop = top
         lastScale = scale
@@ -107,7 +108,8 @@ class BeautyPreviewView @JvmOverloads constructor(
             paint.colorFilter = null
         }
 
-        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0)
+        val needWarp = currentLandmarks.canAdjust() &&
+            (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0)
         if (!needWarp) {
             canvas.save()
             canvas.translate(left, top)
@@ -115,16 +117,16 @@ class BeautyPreviewView @JvmOverloads constructor(
             canvas.drawBitmap(bmp, 0f, 0f, paint)
             canvas.restore()
         } else {
-            var geometryChanged = left != lastLeft || top != lastTop || scale != lastScale
+            var needsTransform = geometryChanged
             if (vertsDirty || cachedVerts == null) {
                 cachedVerts = BeautyFilterEngine.computeWarpedVertices(bmpW, bmpH, currentLandmarks, params)
                 vertsDirty = false
-                geometryChanged = true
+                needsTransform = true
             }
 
             val currentCached = cachedVerts
             if (currentCached != null) {
-                if (geometryChanged || transformedVerts == null || transformedVerts?.size != currentCached.size) {
+                if (needsTransform || transformedVerts == null || transformedVerts?.size != currentCached.size) {
                     val count = currentCached.size
                     if (transformedVerts == null || transformedVerts?.size != count) {
                         transformedVerts = FloatArray(count)

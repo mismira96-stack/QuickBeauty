@@ -88,9 +88,17 @@ class BeautyLandmarks(
     val faceRatio: Float
         get() {
             val minDim = min(imageWidth, imageHeight).toFloat()
-            if (minDim <= 0f) return 0.25f
+            if (minDim <= 0f || !hasFace) return 0f
             return max(faceBounds.width(), faceBounds.height()) / minDim
         }
+
+    /** 40x40 미리보기 메쉬에서 얼굴이 최소 세 칸 이상 차지해야 구조 보정을 허용한다. */
+    fun canAdjust(meshW: Int = 40, meshH: Int = 40): Boolean {
+        if (!hasFace || imageWidth <= 0 || imageHeight <= 0) return false
+        val minWidth = max(100f, imageWidth * 3f / meshW)
+        val minHeight = max(100f, imageHeight * 3f / meshH)
+        return faceBounds.width() >= minWidth && faceBounds.height() >= minHeight
+    }
 
     /**
      * 특정 얼굴을 현재 활성 타깃으로 복사
@@ -108,27 +116,9 @@ class BeautyLandmarks(
         noseBase.set(info.noseBase.x, info.noseBase.y)
     }
 
-    /**
-     * 감지되지 않았을 때 이미지 중앙 인물 프레이밍 기준 기본값 추정
-     * (고정 비율 imageWidth * 0.25f 제거 -> 순수 인체 비례 기반 상대 스케일링)
-     */
+    /** 실제 얼굴이 감지된 경우에만 누락된 신체 위치를 추정한다. */
     fun setupDefaultsIfEmpty() {
-        if (!hasFace) {
-            val fcX = imageWidth * 0.5f
-            val fcY = imageHeight * 0.35f
-            val fw = imageWidth * 0.30f
-            val fh = imageHeight * 0.25f
-            faceBounds.set(fcX - fw * 0.5f, fcY - fh * 0.5f, fcX + fw * 0.5f, fcY + fh * 0.5f)
-            faceCenter.set(fcX, fcY)
-            chinPoint.set(fcX, fcY + fh * 0.45f)
-            leftJaw.set(fcX - fw * 0.38f, fcY + fh * 0.25f)
-            rightJaw.set(fcX + fw * 0.38f, fcY + fh * 0.25f)
-            leftCheek.set(fcX - fw * 0.35f, fcY)
-            rightCheek.set(fcX + fw * 0.35f, fcY)
-            mouthPoint.set(fcX, fcY + fh * 0.28f)
-            noseBase.set(fcX, fcY + fh * 0.08f)
-            hasFace = true
-        }
+        if (!hasFace) return
 
         if (!hasBody) {
             val bcX = faceCenter.x

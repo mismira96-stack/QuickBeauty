@@ -5,6 +5,71 @@ import org.junit.Test
 
 class BeautyFilterEngineTest {
 
+    private fun detectedFaceLandmarks(w: Int, h: Int): BeautyLandmarks {
+        val lm = BeautyLandmarks(w, h)
+        val x = w * 0.5f
+        val y = h * 0.35f
+        val fw = w * 0.30f
+        val fh = h * 0.25f
+        lm.faceBounds.set(x - fw / 2f, y - fh / 2f, x + fw / 2f, y + fh / 2f)
+        lm.faceCenter.set(x, y)
+        lm.chinPoint.set(x, y + fh * 0.45f)
+        lm.mouthPoint.set(x, y + fh * 0.28f)
+        lm.noseBase.set(x, y + fh * 0.08f)
+        lm.hasFace = true
+        lm.setupDefaultsIfEmpty()
+        return lm
+    }
+
+    @Test
+    fun testNoDetectedFaceDoesNotInventPersonOrWarpFood() {
+        val lm = BeautyLandmarks(1000, 1000)
+        lm.setupDefaultsIfEmpty()
+        Assert.assertFalse(lm.hasFace)
+        Assert.assertFalse(lm.hasBody)
+        Assert.assertFalse(lm.canAdjust())
+
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm,
+            BeautyAdjustParams(100, 100, 100, 100, 100, 100))
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm, BeautyAdjustParams())
+        Assert.assertArrayEquals(original, warped, 0.001f)
+    }
+
+    @Test
+    fun testFaceTooSmallForMeshDoesNotWarp() {
+        val lm = BeautyLandmarks(1000, 2000)
+        lm.faceBounds.set(460f, 650f, 540f, 750f)
+        lm.faceCenter.set(500f, 700f)
+        lm.chinPoint.set(500f, 750f)
+        lm.hasFace = true
+        lm.setupDefaultsIfEmpty()
+        Assert.assertFalse(lm.canAdjust())
+
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm,
+            BeautyAdjustParams(100, 100, 100, 100, 100, 100))
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, BeautyAdjustParams())
+        Assert.assertArrayEquals(original, warped, 0.001f)
+    }
+
+    @Test
+    fun testShoulderAndBodyWarpKeepsImageBorderFixed() {
+        val lm = detectedFaceLandmarks(1000, 1000)
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm,
+            BeautyAdjustParams(0, 0, 0, 0, 100, 100))
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm, BeautyAdjustParams())
+        var interiorMoved = false
+        for (i in warped.indices step 2) {
+            val x = original[i]
+            if (x == 0f || x == 1000f) {
+                Assert.assertEquals(x, warped[i], 0.001f)
+                Assert.assertEquals(original[i + 1], warped[i + 1], 0.001f)
+            } else if (kotlin.math.abs(warped[i] - x) > 0.1f) {
+                interiorMoved = true
+            }
+        }
+        Assert.assertTrue("Interior body should still be adjustable", interiorMoved)
+    }
+
     @Test
     fun testParamsClampingAndReset() {
         val params = BeautyAdjustParams(-10, 150, 50, 80, 70, 0)
@@ -54,8 +119,7 @@ class BeautyFilterEngineTest {
 
     @Test
     fun testLandmarksDefaultsAndScale() {
-        val lm = BeautyLandmarks(1000, 2000)
-        lm.setupDefaultsIfEmpty()
+        val lm = detectedFaceLandmarks(1000, 2000)
 
         Assert.assertTrue(lm.hasFace)
         Assert.assertTrue(lm.hasBody)
@@ -73,7 +137,7 @@ class BeautyFilterEngineTest {
     fun testComputeWarpedVerticesZeroParamsMatchesOriginalGrid() {
         val w = 1000
         val h = 1000
-        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+        val lm = detectedFaceLandmarks(w, h)
         val zeroParams = BeautyAdjustParams(0, 0, 0, 0, 0)
 
         val verts = BeautyFilterEngine.computeWarpedVertices(w, h, lm, zeroParams)
@@ -90,7 +154,7 @@ class BeautyFilterEngineTest {
     fun testComputeWarpedVerticesWithFaceSizeShrinksBothXAndY() {
         val w = 1000
         val h = 1000
-        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+        val lm = detectedFaceLandmarks(w, h)
 
         val params = BeautyAdjustParams(0, 100, 0, 0, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
@@ -112,7 +176,7 @@ class BeautyFilterEngineTest {
     fun testComputeWarpedVerticesWithFaceLengthLiftsChinUpward() {
         val w = 1000
         val h = 1000
-        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+        val lm = detectedFaceLandmarks(w, h)
 
         val params = BeautyAdjustParams(0, 0, 0, 100, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
@@ -141,7 +205,7 @@ class BeautyFilterEngineTest {
     fun testFaceLengthDoesNotDistortForeheadAndClothes() {
         val w = 1000
         val h = 2000
-        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+        val lm = detectedFaceLandmarks(w, h)
 
         val params = BeautyAdjustParams(0, 0, 0, 100, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
@@ -173,7 +237,7 @@ class BeautyFilterEngineTest {
     fun testComputeWarpedVerticesWithShoulderBroadeningExpandsShoulders() {
         val w = 1000
         val h = 1000
-        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+        val lm = detectedFaceLandmarks(w, h)
 
         val params = BeautyAdjustParams(0, 0, 0, 0, 100, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params)
@@ -212,7 +276,7 @@ class BeautyFilterEngineTest {
     fun testMonotonicityNoMeshInversion() {
         val w = 1000
         val h = 1000
-        val lm = BeautyLandmarks(w, h).apply { setupDefaultsIfEmpty() }
+        val lm = detectedFaceLandmarks(w, h)
         val maxParams = BeautyAdjustParams(100, 100, 100, 100, 100, 100)
 
         val verts = BeautyFilterEngine.computeWarpedVertices(w, h, lm, maxParams)
@@ -247,16 +311,17 @@ class BeautyFilterEngineTest {
         val w = 1000
         val h = 2000
         val lm = BeautyLandmarks(w, h)
-        // 아기/원거리 전신 사진 시뮬레이션: 얼굴 높이 100px (전체 2000px의 5%)
+        // 보정 최소 크기는 넘지만 전신 사진에서는 여전히 작은 얼굴
         val fcX = 500f
         val fcY = 700f
-        val fw = 80f
-        val fh = 100f
+        val fw = 160f
+        val fh = 180f
         lm.faceBounds.set(fcX - fw * 0.5f, fcY - fh * 0.5f, fcX + fw * 0.5f, fcY + fh * 0.5f)
         lm.faceCenter.set(fcX, fcY)
         lm.chinPoint.set(fcX, fcY + fh * 0.5f)
         lm.hasFace = true
         lm.setupDefaultsIfEmpty()
+        Assert.assertTrue(lm.canAdjust())
 
         val shoulderParams = BeautyAdjustParams(0, 0, 0, 0, 100, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, shoulderParams)

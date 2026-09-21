@@ -40,6 +40,7 @@ class FaceBodyDetector {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var faceDetector: FaceDetector? = null
+    private var contourDetector: FaceDetector? = null
     private var poseDetector: PoseDetector? = null
 
     var lastDetectedPose: Pose? = null
@@ -48,13 +49,20 @@ class FaceBodyDetector {
     init {
         try {
             val faceOptions = FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
-                // 원거리/단체 사진의 작은 얼굴도 감지할 수 있도록 최소 얼굴 크기 완화
+                // 윤곽선 모드를 켜면 가장 뚜렷한 한 얼굴만 반환되므로 다중 얼굴 검출에서는 끈다.
+                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
                 .setMinFaceSize(0.04f)
                 .build()
             faceDetector = FaceDetection.getClient(faceOptions)
+
+            // 대표 얼굴의 턱 윤곽은 별도로 얻어 기존 얼굴 길이 보정 품질을 유지한다.
+            contourDetector = FaceDetection.getClient(FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+                .setMinFaceSize(0.04f)
+                .build())
 
             val poseOptions = PoseDetectorOptions.Builder()
                 .setDetectorMode(PoseDetectorOptions.SINGLE_IMAGE_MODE)
@@ -67,7 +75,7 @@ class FaceBodyDetector {
 
     fun detect(bitmap: Bitmap?, callback: Callback) {
         if (bitmap == null || bitmap.isRecycled) {
-            val empty = BeautyLandmarks(100, 100).apply { setupDefaultsIfEmpty() }
+            val empty = BeautyLandmarks(0, 0)
             mainHandler.post { callback.onDetected(empty) }
             return
         }
@@ -81,10 +89,12 @@ class FaceBodyDetector {
                 val image = InputImage.fromBitmap(bitmap, 0)
 
                 val faceTask: Task<List<Face>> = faceDetector?.process(image) ?: Tasks.forResult(emptyList())
+                val contourTask: Task<List<Face>> = contourDetector?.process(image) ?: Tasks.forResult(emptyList())
                 val poseTask: Task<Pose> = poseDetector?.process(image) ?: Tasks.forResult(null)
 
-                Tasks.whenAllComplete(faceTask, poseTask).addOnCompleteListener {
+                Tasks.whenAllComplete(faceTask, contourTask, poseTask).addOnCompleteListener {
                     val poseResult = if (poseTask.isSuccessful) poseTask.result else null
+                    val contourFace = if (contourTask.isSuccessful) contourTask.result?.firstOrNull() else null
 
                     // 1. 다중 얼굴 분석 및 스마트 스코어링
                     try {
@@ -101,7 +111,8 @@ class FaceBodyDetector {
 
                             val faceInfoList = mutableListOf<BeautyLandmarks.FaceInfo>()
                             for ((idx, f) in faces.withIndex()) {
-                                val info = createFaceInfo(f, idx)
+                                val matchedContour = contourFace?.takeIf { contourMatches(f, it) }
+                                val info = createFaceInfo(f, idx, matchedContour)
                                 val area = f.boundingBox.width().toFloat() * f.boundingBox.height().toFloat()
                                 val dx = f.boundingBox.exactCenterX() - centerX
                                 val dy = f.boundingBox.exactCenterY() - centerY
@@ -169,13 +180,23 @@ class FaceBodyDetector {
         landmarks.setupDefaultsIfEmpty()
     }
 
-    private fun createFaceInfo(face: Face, originalIndex: Int): BeautyLandmarks.FaceInfo {
+    private fun contourMatches(face: Face, contourFace: Face): Boolean {
+        val a = face.boundingBox
+        val b = contourFace.boundingBox
+        val overlapW = max(0, min(a.right, b.right) - max(a.left, b.left))
+        val overlapH = max(0, min(a.bottom, b.bottom) - max(a.top, b.top))
+        val overlap = overlapW.toFloat() * overlapH
+        val smallerArea = min(a.width() * a.height(), b.width() * b.height()).toFloat()
+        return smallerArea > 0f && overlap / smallerArea > 0.5f
+    }
+
+    private fun createFaceInfo(face: Face, originalIndex: Int, contourFace: Face?): BeautyLandmarks.FaceInfo {
         val info = BeautyLandmarks.FaceInfo(index = originalIndex)
         val box = face.boundingBox
         info.bounds.set(box.left.toFloat(), box.top.toFloat(), box.right.toFloat(), box.bottom.toFloat())
         info.center.set(box.exactCenterX(), box.exactCenterY())
 
-        val chinContour = face.getContour(FaceContour.FACE)
+        val chinContour = contourFace?.getContour(FaceContour.FACE)
         if (chinContour != null && chinContour.points.isNotEmpty()) {
             val points = chinContour.points
             var lowest = points[0]
@@ -264,6 +285,7 @@ class FaceBodyDetector {
 
     fun release() {
         faceDetector?.close()
+        contourDetector?.close()
         poseDetector?.close()
         executor.shutdown()
     }

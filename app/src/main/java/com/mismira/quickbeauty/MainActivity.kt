@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var topBarContent: View
     private lateinit var bottomControlPanel: View
     private lateinit var btnReset: View
+    private lateinit var btnSave: View
     private lateinit var txtParamValue: TextView
     private lateinit var seekBarAdjust: SeekBar
 
@@ -70,7 +71,6 @@ class MainActivity : AppCompatActivity() {
     private val params = BeautyAdjustParams()
     private var detector: FaceBodyDetector? = null
 
-    private var hasShownSmallPersonNotice = false
     private var touchDownTime = 0L
     private var touchDownX = 0f
     private var touchDownY = 0f
@@ -123,6 +123,7 @@ class MainActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
 
         btnReset = findViewById(R.id.btnReset)
+        btnSave = findViewById(R.id.btnSave)
         txtParamValue = findViewById(R.id.txtParamValue)
         seekBarAdjust = findViewById(R.id.seekBarAdjust)
 
@@ -162,7 +163,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnClose).setOnClickListener { finish() }
         findViewById<View>(R.id.btnPrivacyPolicy).setOnClickListener { showPrivacyInformation() }
         btnReset.setOnClickListener { resetAll() }
-        findViewById<View>(R.id.btnSave).setOnClickListener { saveProcessedImage() }
+        btnSave.setOnClickListener { saveProcessedImage() }
 
         tabContainers.forEachIndexed { index, container ->
             container.setOnClickListener { selectTab(index) }
@@ -196,11 +197,14 @@ class MainActivity : AppCompatActivity() {
                         if (tappedIndex != lm.selectedFaceIndex) {
                             detector?.switchToFace(lm, tappedIndex)
                             previewView.setSource(previewBitmap, lm)
+                            updateAdjustmentAvailability()
                             previewView.showFocusIndicator()
                             Toast.makeText(this, "${tappedIndex + 1}번째 인물 선택됨 ✨", Toast.LENGTH_SHORT).show()
                         } else {
                             previewView.showFocusIndicator()
-                            Toast.makeText(this, "${tappedIndex + 1}번째 인물 보정 중 ✨", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this,
+                                if (lm.canAdjust()) "${tappedIndex + 1}번째 인물 보정 중 ✨" else "얼굴이 작아 형태 보정은 건너뜁니다",
+                                Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         // 2. 얼굴 제외한 다른 영역(배경/몸 등) 터치 -> 150ms 후 시원하게 원본 비교 실행!
@@ -272,6 +276,7 @@ class MainActivity : AppCompatActivity() {
         val sh = prefs.getInt("pref_shoulder", 0)
         val b = prefs.getInt("pref_body_slim", 0)
         params.set(c, fs, cs, fl, sh, b)
+        selectTab(currentTab)
         updateResetButton()
     }
 
@@ -290,14 +295,17 @@ class MainActivity : AppCompatActivity() {
     private fun showCoachMarkIfNeeded() {
         val shownCount = prefs.getInt("coach_mark_shown_count", 0)
         if (shownCount < 2) {
+            hintCoachMark.text = "길게 눌러 원본 보기"
             hintCoachMark.alpha = 1f
             hintCoachMark.visibility = View.VISIBLE
             hintCoachMark.postDelayed({
-                hintCoachMark.animate()
-                    .alpha(0f)
-                    .setDuration(400)
-                    .withEndAction { hintCoachMark.visibility = View.GONE }
-                    .start()
+                if (detectedLandmarks?.canAdjust() == true) {
+                    hintCoachMark.animate()
+                        .alpha(0f)
+                        .setDuration(400)
+                        .withEndAction { hintCoachMark.visibility = View.GONE }
+                        .start()
+                }
             }, 2500)
             prefs.edit().putInt("coach_mark_shown_count", shownCount + 1).apply()
         } else {
@@ -401,11 +409,11 @@ class MainActivity : AppCompatActivity() {
 
             detector?.detect(bmp) { landmarks ->
                 detectedLandmarks = landmarks
-                hasShownSmallPersonNotice = false
                 progressBar.visibility = View.GONE
                 previewView.setSource(bmp, landmarks)
                 previewView.setParams(params)
-                showCoachMarkIfNeeded()
+                updateAdjustmentAvailability()
+                if (landmarks.canAdjust()) showCoachMarkIfNeeded()
             }
         }
     }
@@ -443,9 +451,31 @@ class MainActivity : AppCompatActivity() {
 
         txtParamValue.text = currentVal.toString()
         seekBarAdjust.progress = currentVal
+        updateAdjustmentAvailability()
+    }
+
+    private fun updateAdjustmentAvailability() {
+        val lm = detectedLandmarks
+        val canAdjustFace = lm?.canAdjust() == true
+        seekBarAdjust.isEnabled = currentTab == TAB_COOL_TONE || canAdjustFace
+        btnSave.isEnabled = lm != null && (canAdjustFace || params.coolTone > 0)
+        btnSave.alpha = if (btnSave.isEnabled) 1f else 0.5f
+        if (lm != null && !canAdjustFace) {
+            hintCoachMark.animate().cancel()
+            hintCoachMark.text = if (lm.hasFace) {
+                "얼굴이 작아 형태 보정 불가 · 쿨톤 가능"
+            } else {
+                "얼굴 미감지: 형태 보정 불가 · 쿨톤 가능"
+            }
+            hintCoachMark.alpha = 1f
+            hintCoachMark.visibility = View.VISIBLE
+        } else if (lm != null && hintCoachMark.text != "길게 눌러 원본 보기") {
+            hintCoachMark.visibility = View.GONE
+        }
     }
 
     private fun applyProgress(progress: Int) {
+        if (currentTab != TAB_COOL_TONE && detectedLandmarks?.canAdjust() != true) return
         txtParamValue.text = progress.toString()
         when (currentTab) {
             TAB_COOL_TONE -> params.coolTone = progress
@@ -459,12 +489,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyProgressInternal(progress: Int) {
-        if (progress > 10 && (detectedLandmarks?.faceRatio ?: 1f) < 0.08f && !hasShownSmallPersonNotice && currentTab != TAB_COOL_TONE) {
-            hasShownSmallPersonNotice = true
-            Toast.makeText(this, "💡 인물이 작아 왜곡 방지를 위해 보정 범위가 자동 조절됩니다.", Toast.LENGTH_SHORT).show()
-        }
         savePreferences()
         updateResetButton()
+        updateAdjustmentAvailability()
         previewView.setParams(params)
     }
 

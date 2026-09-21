@@ -60,8 +60,8 @@ object BeautyFilterEngine {
         val shoulderFactor = (params.shoulder / 100.0f).coerceIn(0f, 1f)
         val bodySlimFactor = (params.bodySlim / 100.0f).coerceIn(0f, 1f)
 
-        val hasFace = landmarks?.hasFace == true
-        val hasBody = landmarks?.hasBody == true
+        val hasFace = landmarks?.canAdjust(meshW, meshH) == true
+        val hasBody = hasFace && landmarks?.hasBody == true
 
         val fc = landmarks?.faceCenter
         val fcX = fc?.x ?: (width * 0.5f)
@@ -280,7 +280,7 @@ object BeautyFilterEngine {
                 // 4. 어깨 넓히기 (Shoulder Broaden / 직각 어깨)
                 // 목은 안전하게 보호하고, 어깨선만 바깥으로 확장하여 당당한 직각 어깨 핏 형성
                 // ==========================================
-                if (shoulderFactor > 0.001f && origY in shoulderTopY..shoulderBotY) {
+                if (shoulderFactor > 0.001f && hasBody && origY in shoulderTopY..shoulderBotY) {
                     val yNorm = (origY - shoulderTopY) / shoulderYSpan
                     val yWeight = sin(yNorm * Math.PI.toFloat())
 
@@ -306,7 +306,11 @@ object BeautyFilterEngine {
                     }
 
                     if (xWeight > 0f && yWeight > 0f) {
-                        val push = maxShoulderPush * yWeight * xWeight
+                        // 사진 경계에 닿은 옷/배경은 이동시키지 않고 안쪽에서 서서히 감쇠한다.
+                        val edgeSpan = max(width * 0.08f, shoulderHalfSpan * 0.5f)
+                        val edgeT = (min(origX, width - origX) / edgeSpan).coerceIn(0f, 1f)
+                        val edgeWeight = edgeT * edgeT * (3f - 2f * edgeT)
+                        val push = maxShoulderPush * yWeight * xWeight * edgeWeight
                         if (dx < 0f) {
                             currX -= push // 좌측 어깨 -> 바깥쪽(왼쪽)으로 확장
                         } else {
@@ -336,7 +340,10 @@ object BeautyFilterEngine {
                             if (absDx < maxBodyW) {
                                 val xNorm = (maxBodyW - absDx) / maxBodyW
                                 val xWeight = xNorm * xNorm
-                                val totalWeight = yWeight * xWeight * bodySlimFactor * 0.22f
+                                val edgeSpan = max(width * 0.08f, bodyHalfWidth * 0.5f)
+                                val edgeT = (min(origX, width - origX) / edgeSpan).coerceIn(0f, 1f)
+                                val edgeWeight = edgeT * edgeT * (3f - 2f * edgeT)
+                                val totalWeight = yWeight * xWeight * bodySlimFactor * 0.22f * edgeWeight
                                 currX -= dx * totalWeight
                             }
                         }
@@ -368,7 +375,7 @@ object BeautyFilterEngine {
             paint.colorFilter = ColorMatrixColorFilter(cm)
         }
 
-        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0) && landmarks != null
+        val needWarp = (params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0 || params.shoulder > 0 || params.bodySlim > 0) && landmarks?.canAdjust() == true
         if (needWarp) {
             val validLandmarks = landmarks!!
             val scaledLandmarks = if (validLandmarks.imageWidth == w && validLandmarks.imageHeight == h) {
