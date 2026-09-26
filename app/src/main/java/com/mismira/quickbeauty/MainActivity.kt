@@ -209,7 +209,8 @@ class MainActivity : AppCompatActivity() {
                             previewView.setSource(previewBitmap, lm)
                             previewView.setParams(params)
                             previewView.setFaceParams(faceParamsByIndex)
-                            updateAdjustmentAvailability()
+                            // 전환된 얼굴의 저장값을 슬라이더와 숫자 표시에도 즉시 반영한다.
+                            selectTab(currentTab)
                             previewView.showFocusIndicator()
                             selectionToast?.cancel()
                             selectionToast = Toast.makeText(this, getString(R.string.toast_person_selected), Toast.LENGTH_SHORT)
