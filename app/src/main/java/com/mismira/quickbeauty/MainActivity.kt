@@ -201,7 +201,7 @@ class MainActivity : AppCompatActivity() {
                             updateAdjustmentAvailability()
                             previewView.showFocusIndicator()
                             selectionToast?.cancel()
-                            selectionToast = Toast.makeText(this, "인물 선택됨 ✨", Toast.LENGTH_SHORT)
+                            selectionToast = Toast.makeText(this, getString(R.string.toast_person_selected), Toast.LENGTH_SHORT)
                             selectionToast?.show()
                         } else {
                             previewView.showFocusIndicator()
@@ -295,7 +295,7 @@ class MainActivity : AppCompatActivity() {
     private fun showCoachMarkIfNeeded() {
         val shownCount = prefs.getInt("coach_mark_shown_count", 0)
         if (shownCount < 2) {
-            hintCoachMark.text = "길게 눌러 원본 보기"
+            hintCoachMark.text = getString(R.string.coach_mark_hold_to_compare)
             hintCoachMark.alpha = 1f
             hintCoachMark.visibility = View.VISIBLE
             hintCoachMark.postDelayed({
@@ -366,7 +366,7 @@ class MainActivity : AppCompatActivity() {
         try {
             pickImageLauncher.launch("image/*")
         } catch (_: Throwable) {
-            Toast.makeText(this, "사진 선택기를 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_error_photo_picker), Toast.LENGTH_SHORT).show()
             finish()
         }
     }
@@ -376,7 +376,7 @@ class MainActivity : AppCompatActivity() {
         try {
             startActivity(intent)
         } catch (_: android.content.ActivityNotFoundException) {
-            Toast.makeText(this, "개인정보처리방침을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_error_privacy_policy), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -400,7 +400,7 @@ class MainActivity : AppCompatActivity() {
 
             if (bmp == null) {
                 progressBar.visibility = View.GONE
-                Toast.makeText(this@MainActivity, "사진을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, getString(R.string.toast_error_load_image), Toast.LENGTH_SHORT).show()
                 finish()
                 return@launch
             }
@@ -468,15 +468,15 @@ class MainActivity : AppCompatActivity() {
         if (lm != null && !canAdjustFace) {
             hintCoachMark.animate().cancel()
             hintCoachMark.text = if (lm.hasFace) {
-                if (canAdjustBody) "얼굴 보정 제한 · 체형/쿨톤 가능"
-                else "얼굴이 작아 형태 보정 불가 · 쿨톤 가능"
+                if (canAdjustBody) getString(R.string.coach_mark_face_limited_body_available)
+                else getString(R.string.coach_mark_face_small_tone_available)
             } else {
-                if (canAdjustBody) "얼굴 미감지 · 체형/쿨톤 가능"
-                else "얼굴 미감지: 형태 보정 불가 · 쿨톤 가능"
+                if (canAdjustBody) getString(R.string.coach_mark_no_face_body_available)
+                else getString(R.string.coach_mark_no_face_tone_available)
             }
             hintCoachMark.alpha = 1f
             hintCoachMark.visibility = View.VISIBLE
-        } else if (lm != null && hintCoachMark.text != "길게 눌러 원본 보기") {
+        } else if (lm != null && hintCoachMark.text != getString(R.string.coach_mark_hold_to_compare)) {
             hintCoachMark.visibility = View.GONE
         }
     }
@@ -512,19 +512,19 @@ class MainActivity : AppCompatActivity() {
         updateResetButton()
         selectTab(currentTab)
         previewView.setParams(params)
-        Toast.makeText(this, "보정 수치가 초기화되었습니다.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_reset_complete), Toast.LENGTH_SHORT).show()
     }
 
     private fun saveProcessedImage() {
         val uri = targetImageUri
         val landmarks = detectedLandmarks
         if (uri == null || landmarks == null) {
-            Toast.makeText(this, "저장할 이미지가 준비되지 않았습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_save_not_ready), Toast.LENGTH_SHORT).show()
             return
         }
 
         progressBar.visibility = View.VISIBLE
-        Toast.makeText(this, "원본 초고화질로 보정하여 저장 중...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_saving_high_res), Toast.LENGTH_SHORT).show()
 
         lifecycleScope.launch {
             val savedUri = withContext(Dispatchers.IO) {
@@ -548,10 +548,10 @@ class MainActivity : AppCompatActivity() {
 
             progressBar.visibility = View.GONE
             if (savedUri != null) {
-                Toast.makeText(this@MainActivity, "새 사진으로 저장 완료! ✨ (갤러리 최신 사진)", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, getString(R.string.toast_save_success), Toast.LENGTH_LONG).show()
                 finish()
             } else {
-                Toast.makeText(this@MainActivity, "저장에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, getString(R.string.toast_save_failed), Toast.LENGTH_SHORT).show()
             }
         }
     }

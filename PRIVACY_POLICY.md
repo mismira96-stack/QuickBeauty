@@ -28,3 +28,39 @@
 사진과 편집 결과는 기기에서 사용자가 관리합니다. 앱 개발자는 이를 서버에 보관하거나 제3자에게 제공하지 않습니다. Google ML Kit 진단 정보 처리 방식은 위 Google 안내를 따릅니다.
 
 개인정보 처리 관련 문의: **mismira96@gmail.com**
+
+---
+
+# QuickBeauty Privacy Policy
+
+**Effective Date: September 14, 2026**
+
+QuickBeauty is an on-device photo editing Android application. The developer does not collect, store, or transmit your personal data, photos, or facial information for user accounts, advertising, or tracking. However, the integrated Google ML Kit SDK may transmit diagnostic and telemetry data to Google. This policy explains how data is handled by the app and its third-party SDK.
+
+## 1. Photos and Editing Data
+
+- **Permissionless Photo Selection**: Photos are chosen explicitly by the user using the Android system Photo Picker or shared directly from other apps (e.g., Gallery). The app never requests broad access to your media storage (`READ_EXTERNAL_STORAGE` or `READ_MEDIA_IMAGES`).
+- **100% On-Device Processing**: All image processing, facial landmark detection, and body pose analysis occur strictly locally on your device. Neither the original image, facial landmarks, nor edited photos are ever uploaded to any external server.
+- **Saving Outputs**: When you tap Save, the resulting image is saved locally to your device's `DCIM/QuickBeauty` directory.
+- **EXIF Metadata & Privacy**: When saving JPEG photos, safe optical metadata (such as camera model, focal length, orientation) is preserved to maintain image quality. However, GPS location data is intentionally stripped and never copied to edited photos.
+
+## 2. Google ML Kit Telemetry & Diagnostics
+
+QuickBeauty utilizes Google ML Kit (Face Detection and Pose Detection) purely for on-device feature analysis.
+Google's ML Kit SDK may transmit non-personally identifiable diagnostic and telemetry data to Google servers to monitor SDK reliability and performance. This data may include device hardware details (make, model, OS version, hardware accelerators), app package name and version, installation identifiers, processing duration, and error codes. Google encrypts telemetry data in transit and handles it under Google's privacy terms.
+
+For more details, please review:
+- [Google ML Kit Data Disclosure](https://developers.google.com/ml-kit/android-data-disclosure)
+- [Google Privacy Policy](https://policies.google.com/privacy)
+
+## 3. Permissions & Device Storage
+
+- The app does not request or require dangerous storage permissions.
+- The app does not read or request access to device location (`ACCESS_MEDIA_LOCATION` / `ACCESS_FINE_LOCATION`).
+- The developer has no backend servers and no access to your edited photos or camera roll.
+
+## 4. Contact Us
+
+If you have any questions or concerns regarding this Privacy Policy, please contact:  
+**Email**: **mismira96@gmail.com**
+

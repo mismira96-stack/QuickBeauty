@@ -41,7 +41,7 @@
                     android:layout_height="22dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_close_vector"
-                    android:contentDescription="닫기" />
+                    android:contentDescription="@string/close" />
             </FrameLayout>
 
             <!-- 타이틀 -->
@@ -56,7 +56,7 @@
                 android:layout_marginEnd="8dp"
                 android:singleLine="true"
                 android:ellipsize="end"
-                android:text="퀵뷰티"
+                android:text="@string/app_name"
                 android:textColor="#F4F4F5"
                 android:textSize="17sp"
                 android:textStyle="bold" />
@@ -91,7 +91,7 @@
                     android:gravity="center"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:paddingHorizontal="10dp"
-                    android:text="↺ 초기화"
+                    android:text="@string/btn_reset"
                     android:textColor="#A1A1AA"
                     android:textSize="13sp"
                     android:clickable="true"
@@ -105,7 +105,7 @@
                     android:gravity="center"
                     android:background="@drawable/bg_save_btn"
                     android:paddingHorizontal="16dp"
-                    android:text="저장"
+                    android:text="@string/btn_save"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -138,7 +138,7 @@
             android:background="@drawable/bg_frosted_badge"
             android:paddingHorizontal="14dp"
             android:paddingVertical="6dp"
-            android:text="원본 비교 중"
+            android:text="@string/badge_original"
             android:textColor="#E4E4E7"
             android:textSize="12sp"
             android:visibility="gone" />
@@ -153,7 +153,7 @@
             android:background="@drawable/bg_frosted_badge"
             android:paddingHorizontal="14dp"
             android:paddingVertical="7dp"
-            android:text="길게 눌러 원본 보기"
+            android:text="@string/coach_mark_hold_to_compare"
             android:textColor="#A1A1AA"
             android:textSize="12sp"
             android:visibility="gone" />
@@ -211,7 +211,7 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_cool_tone"
-                        android:contentDescription="쿨톤" />
+                        android:contentDescription="@string/tab_tone" />
                 </FrameLayout>
 
                 <TextView
@@ -220,7 +220,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:text="쿨톤"
+                    android:text="@string/tab_tone"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
@@ -252,7 +252,7 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_face_size"
-                        android:contentDescription="작은얼굴" />
+                        android:contentDescription="@string/tab_face_size" />
                 </FrameLayout>
 
                 <TextView
@@ -261,7 +261,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:text="작은얼굴"
+                    android:text="@string/tab_face_size"
                     android:textSize="11sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
@@ -292,7 +292,7 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_chin_slim"
-                        android:contentDescription="턱선" />
+                        android:contentDescription="@string/tab_chin_slim" />
                 </FrameLayout>
 
                 <TextView
@@ -301,7 +301,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:text="턱선"
+                    android:text="@string/tab_chin_slim"
                     android:textSize="11sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
@@ -332,7 +332,7 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_face_length"
-                        android:contentDescription="얼굴길이" />
+                        android:contentDescription="@string/tab_face_length" />
                 </FrameLayout>
 
                 <TextView
@@ -341,7 +341,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:text="얼굴길이"
+                    android:text="@string/tab_face_length"
                     android:textSize="11sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
@@ -372,7 +372,7 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_shoulder"
-                        android:contentDescription="어깨" />
+                        android:contentDescription="@string/tab_shoulder" />
                 </FrameLayout>
 
                 <TextView
@@ -381,7 +381,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:text="어깨"
+                    android:text="@string/tab_shoulder"
                     android:textSize="11sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
@@ -412,7 +412,7 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_body_slim"
-                        android:contentDescription="몸매" />
+                        android:contentDescription="@string/tab_body_slim" />
                 </FrameLayout>
 
                 <TextView
@@ -421,7 +421,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:text="몸매"
+                    android:text="@string/tab_body_slim"
                     android:textSize="11sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
