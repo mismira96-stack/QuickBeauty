@@ -24,7 +24,7 @@ QuickBeauty - Natural Editor
 ### **Short Description**
 > Limit: 80 characters
 ```text
-100% on-device photo & body editor. No ads, no server upload, original quality.
+100% on-device photo & body editor. No ads, no server upload, high-quality output.
 ```
 *(Character count: 79 / 80)*
 
@@ -50,7 +50,7 @@ Tired of bloated 200MB camera apps packed with intrusive ads, weekly subscriptio
 • No Server Upload: Your photos and facial data never leave your phone. All AI processing runs locally using on-device ML Kit technology.
 • No Account Required: No sign-ups, no logins, no personal tracking.
 • Permissionless Selection: Uses Android's secure Photo Picker — no broad storage permissions needed.
-• Safe EXIF Preservation: Retains original camera resolution and safe lens metadata, while automatically stripping sensitive GPS location data.
+• Safe EXIF Preservation: Keeps safe lens metadata and automatically strips sensitive GPS location data. Large photos are processed within a mobile-friendly resolution limit.
 
 ⚡ Fast & Minimal:
 • Under 15MB download size — quick to install and gentle on your storage.
