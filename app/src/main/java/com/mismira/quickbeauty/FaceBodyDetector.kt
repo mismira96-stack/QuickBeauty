@@ -94,7 +94,7 @@ class FaceBodyDetector {
 
                 Tasks.whenAllComplete(faceTask, contourTask, poseTask).addOnCompleteListener {
                     val poseResult = if (poseTask.isSuccessful) poseTask.result else null
-                    val contourFace = if (contourTask.isSuccessful) contourTask.result?.firstOrNull() else null
+                    val contourFaces = if (contourTask.isSuccessful) contourTask.result.orEmpty() else emptyList()
 
                     // 1. 다중 얼굴 분석 및 스마트 스코어링
                     try {
@@ -113,7 +113,7 @@ class FaceBodyDetector {
 
                             val faceInfoList = mutableListOf<BeautyLandmarks.FaceInfo>()
                             for ((idx, f) in faces.withIndex()) {
-                                val matchedContour = contourFace?.takeIf { contourMatches(f, it) }
+                                val matchedContour = contourFaces.firstOrNull { contourMatches(f, it) }
                                 val info = createFaceInfo(f, idx, matchedContour)
                                 val area = f.boundingBox.width().toFloat() * f.boundingBox.height().toFloat()
                                 val dx = f.boundingBox.exactCenterX() - centerX

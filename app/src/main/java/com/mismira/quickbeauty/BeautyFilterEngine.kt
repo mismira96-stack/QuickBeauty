@@ -61,6 +61,16 @@ object BeautyFilterEngine {
         val totalVerts = (meshW + 1) * (meshH + 1)
         val verts = FloatArray(totalVerts * 2)
 
+        fun isInsideOtherFace(x: Float, y: Float): Boolean {
+            val faces = landmarks?.allFaces ?: return false
+            val selected = landmarks.selectedFaceIndex
+            return faces.any { face ->
+                face.index != selected &&
+                    x in (face.bounds.left - face.bounds.width() * 0.18f)..(face.bounds.right + face.bounds.width() * 0.18f) &&
+                    y in (face.bounds.top - face.bounds.height() * 0.18f)..(face.bounds.bottom + face.bounds.height() * 0.18f)
+            }
+        }
+
         val faceSizeFactor = (params.faceSize / 100.0f).coerceIn(0f, 1f)
         val chinSlimFactor = (params.chinSlim / 100.0f).coerceIn(0f, 1f)
         val faceLengthFactor = (params.faceLength / 100.0f).coerceIn(0f, 1f)
@@ -188,12 +198,13 @@ object BeautyFilterEngine {
                 val origX = c.toFloat() * width / meshW
                 var currX = origX
                 var currY = origY
+                val protectedOtherFace = isInsideOtherFace(origX, origY)
 
                 // ==========================================
                 // 1. 얼굴 전체 크기 축소 (Face Size - 소두)
                 // 두상/얼굴 전체를 X, Y 균일하게 축소하여 어깨 대비 얼굴 비율 축소
                 // ==========================================
-                if (faceSizeFactor > 0.001f && hasFace) {
+                if (faceSizeFactor > 0.001f && hasFace && !protectedOtherFace) {
                     val dx = origX - fcX
                     val dy = origY - fcY
                     val dist = sqrt(dx * dx + dy * dy)
@@ -214,7 +225,7 @@ object BeautyFilterEngine {
                 // 2. 턱선 V라인 슬림 (Jawline V-Line)
                 // 양 볼살 및 사각턱 라인을 V라인으로 갸름하게 압축
                 // ==========================================
-                if (chinSlimFactor > 0.001f && hasFace) {
+                if (chinSlimFactor > 0.001f && hasFace && !protectedOtherFace) {
                     val yNorm = (origY - jawYStart) / jawSpan
                     if (yNorm in 0f..1f) {
                         val yWeight = sin(yNorm * Math.PI.toFloat())
@@ -252,7 +263,7 @@ object BeautyFilterEngine {
                 // 머리 위 배경 왜곡 방지를 위해 이마 하향 변위는 완전 제거
                 // 목 및 티셔츠/옷깃 침범 방지를 위해 턱 밑 감쇠를 초근접 영역(safeNeckY)으로 엄격 제한
                 // ==========================================
-                if (faceLengthFactor > 0.001f && hasFace) {
+                if (faceLengthFactor > 0.001f && hasFace && !protectedOtherFace) {
                     val absDx = abs(origX - fcX)
                     val xWeight: Float = when {
                         absDx <= lengthInnerW -> 1f

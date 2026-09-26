@@ -104,6 +104,10 @@ class BeautyLandmarks(
     /** 작은 얼굴이라도 실제로 일치한 포즈의 상체가 충분히 크면 체형 보정은 허용한다. */
     fun canAdjustBody(meshW: Int = 40, meshH: Int = 40): Boolean {
         if (!hasBody || imageWidth <= 0 || imageHeight <= 0) return false
+        // ML Kit의 SINGLE_IMAGE_MODE는 사진당 포즈 하나만 반환하므로,
+        // 다중 인물에서는 다른 사람의 포즈가 선택된 얼굴에 붙을 수 있다.
+        // 얼굴 보정은 계속 허용하되, 어깨·몸매는 보수적으로 잠근다.
+        if (allFaces.size > 1) return false
         if (hasFace && canAdjust(meshW, meshH)) return true
         if (!hasReliablePose) return false
         return bodyBounds.width() >= imageWidth * 3f / meshW &&

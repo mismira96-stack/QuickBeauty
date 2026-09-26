@@ -23,6 +23,7 @@
     <string name="coach_mark_face_small_tone_available">얼굴이 작아 형태 보정 불가 · 쿨톤 가능</string>
     <string name="coach_mark_no_face_body_available">얼굴 미감지 · 체형/쿨톤 가능</string>
     <string name="coach_mark_no_face_tone_available">얼굴 미감지: 형태 보정 불가 · 쿨톤 가능</string>
+    <string name="coach_mark_multiple_faces_body_unavailable">여러 얼굴 감지 · 얼굴 보정 가능</string>
 
     <string name="toast_person_selected">인물 선택됨 ✨</string>
     <string name="toast_error_photo_picker">사진 선택기를 열 수 없습니다.</string>

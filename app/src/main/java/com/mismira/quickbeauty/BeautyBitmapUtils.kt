@@ -18,6 +18,8 @@ import java.util.Locale
 
 object BeautyBitmapUtils {
     private const val TAG = "BeautyBitmapUtils"
+    // 모바일 편집에서 충분한 품질을 유지하면서 200MP 원본의 메모리 폭발을 막는다.
+    private const val MAX_EDIT_DIMENSION = 6000
 
     fun decodeSampledBitmapFromUri(context: Context, uri: Uri, maxDimension: Int): Bitmap? {
         return try {
@@ -56,29 +58,17 @@ object BeautyBitmapUtils {
     }
 
     fun decodeFullBitmapFromUri(context: Context, uri: Uri): Bitmap? {
-        val resolver = context.contentResolver
-        // 1. 원본 해상도 100% 무손실 디코딩 (inSampleSize = 1)
+        // 원본을 무조건 1:1로 디코드하면 200MP 사진에서 회전·워프 결과와
+        // 비트맵이 동시에 살아 있어 저장 중 OOM이 발생할 수 있다. 6000px
+        // 상한은 일반적인 공유·인쇄 용도에는 충분하고, 메모리 사용량을 예측 가능하게 한다.
         return try {
-            val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = false
-                inSampleSize = 1
-                inPreferredConfig = Bitmap.Config.ARGB_8888
-            }
-            val bitmap = resolver.openInputStream(uri)?.use { input ->
-                BitmapFactory.decodeStream(input, null, options)
-            }
-            if (bitmap != null) {
-                val orientation = getExifOrientation(context, uri)
-                applyExifOrientation(bitmap, orientation)
-            } else {
-                decodeSampledBitmapFromUri(context, uri, 8192)
-            }
+            decodeSampledBitmapFromUri(context, uri, MAX_EDIT_DIMENSION)
         } catch (oom: OutOfMemoryError) {
-            Log.w(TAG, "원본 100% 로드 중 OOM 발생, 8K(8192px) 초고화질 샘플링으로 대체: ${oom.message}")
-            decodeSampledBitmapFromUri(context, uri, 8192)
+            Log.w(TAG, "고해상도 편집 이미지 로드 중 OOM, 4K 샘플링으로 대체: ${oom.message}")
+            decodeSampledBitmapFromUri(context, uri, 4096)
         } catch (t: Throwable) {
-            Log.w(TAG, "원본 로드 예외, 8K 샘플링으로 대체: ${t.message}")
-            decodeSampledBitmapFromUri(context, uri, 8192)
+            Log.w(TAG, "고해상도 편집 이미지 로드 예외, 4K 샘플링으로 대체: ${t.message}")
+            decodeSampledBitmapFromUri(context, uri, 4096)
         }
     }
 

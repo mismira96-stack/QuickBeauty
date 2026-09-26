@@ -96,6 +96,29 @@ class BeautyFilterEngineTest {
     }
 
     @Test
+    fun testMultiFaceDisablesAmbiguousBodyWarpAndProtectsSiblingFace() {
+        val lm = detectedFaceLandmarks(1000, 1000)
+        val selected = BeautyLandmarks.FaceInfo(index = 0)
+        selected.bounds.set(350f, 225f, 650f, 475f)
+        selected.center.set(500f, 350f)
+        val sibling = BeautyLandmarks.FaceInfo(index = 1)
+        sibling.bounds.set(620f, 225f, 860f, 445f)
+        sibling.center.set(740f, 335f)
+        lm.allFaces.add(selected)
+        lm.allFaces.add(sibling)
+        lm.selectedFaceIndex = 0
+
+        Assert.assertFalse("A single pose must not drive ambiguous multi-face body edits", lm.canAdjustBody())
+
+        val params = BeautyAdjustParams(0, 100, 0, 0, 0, 0)
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm, params)
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm, BeautyAdjustParams())
+        val siblingVertex = (19 * 41 + 29) * 2 // x=725, y=475: just below the sibling box
+        Assert.assertEquals(original[siblingVertex], warped[siblingVertex], 0.001f)
+        Assert.assertEquals(original[siblingVertex + 1], warped[siblingVertex + 1], 0.001f)
+    }
+
+    @Test
     fun testFaceCoveredButReliablePoseAllowsBodyOnlyWarp() {
         val lm = BeautyLandmarks(1000, 2000)
         lm.hasBody = true

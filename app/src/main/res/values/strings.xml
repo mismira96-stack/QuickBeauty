@@ -23,6 +23,7 @@
     <string name="coach_mark_face_small_tone_available">Face too small to reshape · Tone available</string>
     <string name="coach_mark_no_face_body_available">No face detected · Body &amp; Tone available</string>
     <string name="coach_mark_no_face_tone_available">No face detected · Tone available</string>
+    <string name="coach_mark_multiple_faces_body_unavailable">Multiple faces detected · Face edits available</string>
 
     <string name="toast_person_selected">Person selected ✨</string>
     <string name="toast_error_photo_picker">Unable to open photo picker.</string>

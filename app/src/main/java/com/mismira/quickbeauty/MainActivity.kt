@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity() {
     private var touchDownY = 0f
     private var isShowingOriginal = false
     private var selectionToast: Toast? = null
+    private var isSaving = false
     private val showOriginalRunnable = Runnable {
         isShowingOriginal = true
         previewView.setShowOriginal(true)
@@ -320,6 +321,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        if (isSaving) return
         if (intent == null) {
             pickImageFromGallery()
             return
@@ -390,6 +392,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadImage(uri: Uri) {
+        if (isSaving) return
         this.targetImageUri = uri
         progressBar.visibility = View.VISIBLE
 
@@ -465,7 +468,12 @@ class MainActivity : AppCompatActivity() {
         }
         btnSave.isEnabled = lm != null && (canAdjustFace || canAdjustBody || params.coolTone > 0)
         btnSave.alpha = if (btnSave.isEnabled) 1f else 0.5f
-        if (lm != null && !canAdjustFace) {
+        if (lm != null && lm.allFaces.size > 1 && !canAdjustBody) {
+            hintCoachMark.animate().cancel()
+            hintCoachMark.text = getString(R.string.coach_mark_multiple_faces_body_unavailable)
+            hintCoachMark.alpha = 1f
+            hintCoachMark.visibility = View.VISIBLE
+        } else if (lm != null && !canAdjustFace) {
             hintCoachMark.animate().cancel()
             hintCoachMark.text = if (lm.hasFace) {
                 if (canAdjustBody) getString(R.string.coach_mark_face_limited_body_available)
@@ -516,6 +524,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveProcessedImage() {
+        if (isSaving) return
         val uri = targetImageUri
         val landmarks = detectedLandmarks
         if (uri == null || landmarks == null) {
@@ -523,14 +532,19 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        val snapshotLandmarks = landmarks.scaleTo(landmarks.imageWidth, landmarks.imageHeight)
+        val snapshotParams = params.copy()
+        val snapshotPreview = previewBitmap
+        isSaving = true
+        btnSave.isEnabled = false
         progressBar.visibility = View.VISIBLE
         Toast.makeText(this, getString(R.string.toast_saving_high_res), Toast.LENGTH_SHORT).show()
 
         lifecycleScope.launch {
             val savedUri = withContext(Dispatchers.IO) {
                 try {
-                    val fullBitmap = BeautyBitmapUtils.decodeFullBitmapFromUri(this@MainActivity, uri) ?: previewBitmap
-                    val processed = BeautyFilterEngine.process(fullBitmap, landmarks, params)
+                    val fullBitmap = BeautyBitmapUtils.decodeFullBitmapFromUri(this@MainActivity, uri) ?: snapshotPreview
+                    val processed = BeautyFilterEngine.process(fullBitmap, snapshotLandmarks, snapshotParams)
                     val resultUri = BeautyBitmapUtils.saveBitmapToGallery(this@MainActivity, uri, processed)
 
                     if (fullBitmap != previewBitmap && fullBitmap?.isRecycled == false) {
@@ -547,6 +561,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             progressBar.visibility = View.GONE
+            isSaving = false
+            updateAdjustmentAvailability()
             if (savedUri != null) {
                 Toast.makeText(this@MainActivity, getString(R.string.toast_save_success), Toast.LENGTH_LONG).show()
                 finish()
