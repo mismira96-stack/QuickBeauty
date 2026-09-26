@@ -196,7 +196,7 @@ class MainActivity : AppCompatActivity() {
                     val lm = detectedLandmarks
 
                     if (tappedIndex != null && lm != null && lm.allFaces.size > 1) {
-                        // 1. 얼굴을 터치함 -> 원본 비교 타이머는 아예 켜지 않고 즉시 얼굴 선택!
+                        // 1. 얼굴은 즉시 선택하되, 길게 누르면 사진 전체의 원본 비교도 허용한다.
                         if (tappedIndex != lm.selectedFaceIndex) {
                             faceParamsByIndex[lm.selectedFaceIndex] = params.copy(coolTone = 0)
                             detector?.switchToFace(lm, tappedIndex)
@@ -217,6 +217,8 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             previewView.showFocusIndicator()
                         }
+                        // 짧은 탭은 얼굴 선택, 홀드는 전체 before/after 비교
+                        v.handler?.postDelayed(showOriginalRunnable, LONG_PRESS_TIMEOUT_MS)
                     } else {
                         // 2. 얼굴 제외한 다른 영역(배경/몸 등) 터치 -> 150ms 후 시원하게 원본 비교 실행!
                         v.handler?.postDelayed(showOriginalRunnable, 150)
