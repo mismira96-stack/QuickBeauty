@@ -56,8 +56,34 @@ object BeautyFilterEngine {
         landmarks: BeautyLandmarks?,
         params: BeautyAdjustParams,
         meshW: Int = MESH_W,
-        meshH: Int = MESH_H
+        meshH: Int = MESH_H,
+        faceParamsByIndex: Map<Int, BeautyAdjustParams> = emptyMap()
     ): FloatArray {
+        // 여러 얼굴 사진은 얼굴별 메쉬 변위를 합성한다. 각 얼굴은 원본 좌표에서
+        // 독립적으로 계산하므로 얼굴을 전환해도 앞서 적용한 얼굴이 원복되지 않는다.
+        if (landmarks != null && landmarks.allFaces.size > 1 && faceParamsByIndex.isNotEmpty()) {
+            val base = FloatArray((meshW + 1) * (meshH + 1) * 2)
+            var i = 0
+            for (r in 0..meshH) for (c in 0..meshW) {
+                base[i++] = c.toFloat() * width / meshW
+                base[i++] = r.toFloat() * height / meshH
+            }
+            val displacement = FloatArray(base.size)
+            for (face in landmarks.allFaces) {
+                val faceParams = faceParamsByIndex[face.index] ?: continue
+                if (faceParams.faceSize == 0 && faceParams.chinSlim == 0 && faceParams.faceLength == 0) continue
+                val perFace = landmarks.scaleTo(width, height).also {
+                    it.selectedFaceIndex = face.index
+                    it.applyFaceInfo(it.allFaces.first { f -> f.index == face.index })
+                    it.hasBody = false
+                    it.hasReliablePose = false
+                }
+                val warped = computeWarpedVertices(width, height, perFace, faceParams, meshW, meshH)
+                for (j in warped.indices) displacement[j] += warped[j] - base[j]
+            }
+            for (j in base.indices) base[j] += displacement[j]
+            return base
+        }
         val totalVerts = (meshW + 1) * (meshH + 1)
         val verts = FloatArray(totalVerts * 2)
 
@@ -382,7 +408,7 @@ object BeautyFilterEngine {
         return verts
     }
 
-    fun process(source: Bitmap?, landmarks: BeautyLandmarks?, params: BeautyAdjustParams): Bitmap? {
+    fun process(source: Bitmap?, landmarks: BeautyLandmarks?, params: BeautyAdjustParams, faceParamsByIndex: Map<Int, BeautyAdjustParams> = emptyMap()): Bitmap? {
         if (source == null || source.isRecycled) return null
 
         val w = source.width
@@ -400,7 +426,7 @@ object BeautyFilterEngine {
             paint.colorFilter = ColorMatrixColorFilter(cm)
         }
 
-        val needWarp = hasSupportedWarp(landmarks, params)
+        val needWarp = hasSupportedWarp(landmarks, params) || faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 }
         if (needWarp) {
             val validLandmarks = landmarks!!
             val scaledLandmarks = if (validLandmarks.imageWidth == w && validLandmarks.imageHeight == h) {
@@ -411,7 +437,7 @@ object BeautyFilterEngine {
             // 고해상도 이미지일 경우 더 정밀한 60x60 메쉬 적용으로 초고화질 곡선 완벽 보존
             val meshW = if (w >= 2000 || h >= 2000) 60 else MESH_W
             val meshH = if (w >= 2000 || h >= 2000) 60 else MESH_H
-            val verts = computeWarpedVertices(w, h, scaledLandmarks, params, meshW, meshH)
+            val verts = computeWarpedVertices(w, h, scaledLandmarks, params, meshW, meshH, faceParamsByIndex)
             canvas.drawBitmapMesh(source, meshW, meshH, verts, 0, null, 0, paint)
         } else {
             canvas.drawBitmap(source, 0f, 0f, paint)

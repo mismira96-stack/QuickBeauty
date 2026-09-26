@@ -21,6 +21,7 @@ class BeautyPreviewView @JvmOverloads constructor(
     private var sourceBitmap: Bitmap? = null
     private var landmarks: BeautyLandmarks? = null
     private var params = BeautyAdjustParams()
+    private var faceParamsByIndex: Map<Int, BeautyAdjustParams> = emptyMap()
     private var showOriginal = false
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
@@ -51,6 +52,12 @@ class BeautyPreviewView @JvmOverloads constructor(
 
     fun setParams(params: BeautyAdjustParams) {
         this.params = params.copy()
+        this.vertsDirty = true
+        invalidate()
+    }
+
+    fun setFaceParams(faceParams: Map<Int, BeautyAdjustParams>) {
+        this.faceParamsByIndex = faceParams.mapValues { it.value.copy() }
         this.vertsDirty = true
         invalidate()
     }
@@ -87,7 +94,8 @@ class BeautyPreviewView @JvmOverloads constructor(
         lastScale = scale
 
         val currentLandmarks = landmarks
-        if (showOriginal || params.isDefault() || currentLandmarks == null) {
+        val hasFaceEdits = faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 }
+        if (showOriginal || (params.isDefault() && !hasFaceEdits) || currentLandmarks == null) {
             paint.colorFilter = null
             canvas.save()
             canvas.translate(left, top)
@@ -108,7 +116,7 @@ class BeautyPreviewView @JvmOverloads constructor(
             paint.colorFilter = null
         }
 
-        val needWarp = BeautyFilterEngine.hasSupportedWarp(currentLandmarks, params)
+        val needWarp = BeautyFilterEngine.hasSupportedWarp(currentLandmarks, params) || hasFaceEdits
         if (!needWarp) {
             canvas.save()
             canvas.translate(left, top)
@@ -118,7 +126,7 @@ class BeautyPreviewView @JvmOverloads constructor(
         } else {
             var needsTransform = geometryChanged
             if (vertsDirty || cachedVerts == null) {
-                cachedVerts = BeautyFilterEngine.computeWarpedVertices(bmpW, bmpH, currentLandmarks, params)
+                cachedVerts = BeautyFilterEngine.computeWarpedVertices(bmpW, bmpH, currentLandmarks, params, faceParamsByIndex = faceParamsByIndex)
                 vertsDirty = false
                 needsTransform = true
             }

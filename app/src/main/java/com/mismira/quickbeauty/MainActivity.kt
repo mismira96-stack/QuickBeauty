@@ -69,6 +69,7 @@ class MainActivity : AppCompatActivity() {
     private var previewBitmap: Bitmap? = null
     private var detectedLandmarks: BeautyLandmarks? = null
     private val params = BeautyAdjustParams()
+    private val faceParamsByIndex = mutableMapOf<Int, BeautyAdjustParams>()
     private var detector: FaceBodyDetector? = null
 
     private var touchDownTime = 0L
@@ -197,8 +198,17 @@ class MainActivity : AppCompatActivity() {
                     if (tappedIndex != null && lm != null && lm.allFaces.size > 1) {
                         // 1. 얼굴을 터치함 -> 원본 비교 타이머는 아예 켜지 않고 즉시 얼굴 선택!
                         if (tappedIndex != lm.selectedFaceIndex) {
+                            faceParamsByIndex[lm.selectedFaceIndex] = params.copy(coolTone = 0)
                             detector?.switchToFace(lm, tappedIndex)
+                            val targetParams = faceParamsByIndex[tappedIndex]
+                            params.faceSize = targetParams?.faceSize ?: 0
+                            params.chinSlim = targetParams?.chinSlim ?: 0
+                            params.faceLength = targetParams?.faceLength ?: 0
+                            params.shoulder = 0
+                            params.bodySlim = 0
                             previewView.setSource(previewBitmap, lm)
+                            previewView.setParams(params)
+                            previewView.setFaceParams(faceParamsByIndex)
                             updateAdjustmentAvailability()
                             previewView.showFocusIndicator()
                             selectionToast?.cancel()
@@ -409,6 +419,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             previewBitmap = bmp
+            faceParamsByIndex.clear()
+            params.reset()
 
             detector?.detect(bmp) { landmarks ->
                 detectedLandmarks = landmarks
@@ -504,10 +516,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyProgressInternal(progress: Int) {
+        if (currentTab != TAB_COOL_TONE && (detectedLandmarks?.allFaces?.size ?: 0) > 1) {
+            faceParamsByIndex[detectedLandmarks!!.selectedFaceIndex] = params.copy(coolTone = 0)
+        }
         savePreferences()
         updateResetButton()
         updateAdjustmentAvailability()
         previewView.setParams(params)
+        previewView.setFaceParams(faceParamsByIndex)
     }
 
     private fun updateResetButton() {
@@ -516,10 +532,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun resetAll() {
         params.reset()
+        faceParamsByIndex.clear()
         prefs.edit().clear().apply()
         updateResetButton()
         selectTab(currentTab)
         previewView.setParams(params)
+        previewView.setFaceParams(faceParamsByIndex)
         Toast.makeText(this, getString(R.string.toast_reset_complete), Toast.LENGTH_SHORT).show()
     }
 
@@ -534,6 +552,7 @@ class MainActivity : AppCompatActivity() {
 
         val snapshotLandmarks = landmarks.scaleTo(landmarks.imageWidth, landmarks.imageHeight)
         val snapshotParams = params.copy()
+        val snapshotFaceParams = faceParamsByIndex.mapValues { it.value.copy() }
         val snapshotPreview = previewBitmap
         isSaving = true
         btnSave.isEnabled = false
@@ -544,7 +563,7 @@ class MainActivity : AppCompatActivity() {
             val savedUri = withContext(Dispatchers.IO) {
                 try {
                     val fullBitmap = BeautyBitmapUtils.decodeFullBitmapFromUri(this@MainActivity, uri) ?: snapshotPreview
-                    val processed = BeautyFilterEngine.process(fullBitmap, snapshotLandmarks, snapshotParams)
+                    val processed = BeautyFilterEngine.process(fullBitmap, snapshotLandmarks, snapshotParams, snapshotFaceParams)
                     val resultUri = BeautyBitmapUtils.saveBitmapToGallery(this@MainActivity, uri, processed)
 
                     if (fullBitmap != previewBitmap && fullBitmap?.isRecycled == false) {
