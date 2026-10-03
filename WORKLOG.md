@@ -253,3 +253,11 @@ app/src/main/java/com/mismira/quickbeauty/
 - **실기기 동작 검증**: Samsung Galaxy Z Fold SE 실기기(`R5KL503VHQR`)에 구버전 패키지 충돌 정리 후 v1.0.4 릴리즈 패키지 설치, 상태바 안전 여백 실측 및 실기기 정상 실행 확인 완료.
 
 
+
+## 2026-10-03 — QuickBeauty 1.1.1 (14), production 16 KB fix
+- Includes face-length tuning from b62e758 (maximum lift 0.040, proportional neck falloff).
+- Updated bundled ML Kit pose detection 18.0.0-beta3 to beta5: old libxeno_native.so used 4096-byte ELF LOAD alignment; new arm64-v8a/x86_64 libraries use 16384-byte alignment.
+- Verified all four 64-bit native libraries, APK zipalign -P 16 and APK signature verification.
+- testReleaseUnitTest: 22 tests, zero failures/errors; assembleRelease and bundleRelease passed.
+- Production draft replaces version 13 with 14. Final review submission remains manual.
+- A 16 KB emulator runtime test has not been performed. Pose SDK change needs device regression check.
