@@ -336,8 +336,8 @@ class BeautyFilterEngineTest {
                 Assert.assertEquals("Forehead background must have 0 displacement at Y=$origY", 0.0f, dy, 0.001f)
             }
 
-            // 2. 턱 아래 옷/가슴 영역 (턱 끝 + 30px 이후): 변위가 0이어야 함 (옷깃/티셔츠 빨림 완전 차단)
-            if (origY > (chinY + 30f)) {
+            // 2. 턱 아래 옷/가슴 영역 (턱 및 목 완충 구간 이후): 변위가 0이어야 함 (옷깃/티셔츠 빨림 완전 차단)
+            if (origY > (chinY + fh * 0.16f)) {
                 val dy = kotlin.math.abs(warped[i + 1] - origY)
                 Assert.assertEquals("Clothes/chest below chin must have 0 displacement at Y=$origY", 0.0f, dy, 0.001f)
             }
@@ -535,6 +535,66 @@ class BeautyFilterEngineTest {
         Assert.assertTrue("Chin lift must occur on smiling baby face fixture", chinLiftOccurred)
         Assert.assertEquals("Hair/bow/background must NOT be pulled down (displacement 0.0)", 0f, maxHairDistortion, 0.001f)
         Assert.assertEquals("Striped t-shirt below chin must NOT be pulled up (displacement 0.0)", 0f, maxClothesDistortion, 0.001f)
+    }
+
+    @Test
+    fun testUltraHighResolutionPhotoFaceLengthSmoothnessNoTearing() {
+        // 실제 갤럭시 Z 폴드 실기기 4744x3556 초고해상도 환경 시뮬레이션
+        val w = 4744
+        val h = 3556
+        val lm = BeautyLandmarks(w, h)
+        val x = w * 0.5f
+        val y = h * 0.38f
+        val fw = 1100f
+        val fh = 1350f
+        lm.faceBounds.set(x - fw / 2f, y - fh / 2f, x + fw / 2f, y + fh / 2f)
+        lm.faceCenter.set(x, y)
+        lm.chinPoint.set(x, y + fh * 0.44f)
+        lm.mouthPoint.set(x, y + fh * 0.28f)
+        lm.noseBase.set(x, y + fh * 0.08f)
+        lm.hasFace = true
+        lm.setupDefaultsIfEmpty()
+
+        val params = BeautyAdjustParams(0, 0, 0, 100, 0, 0)
+        val meshW = 40
+        val meshH = 40
+        val warped = BeautyFilterEngine.computeWarpedVertices(w, h, lm, params, meshW, meshH)
+        val original = BeautyFilterEngine.computeWarpedVertices(w, h, lm, BeautyAdjustParams(), meshW, meshH)
+
+        val chinY = lm.chinPoint.y
+        val chinX = lm.chinPoint.x
+        var maxChinLift = 0f
+        var maxDisplacementGradient = 0f
+
+        // 메쉬 버텍스 격자별 변위 검사
+        val cellH = h.toFloat() / meshH
+        for (r in 0 until meshH) {
+            val idx1 = (r * (meshW + 1) + (meshW / 2)) * 2
+            val idx2 = ((r + 1) * (meshW + 1) + (meshW / 2)) * 2
+
+            val dy1 = kotlin.math.abs(warped[idx1 + 1] - original[idx1 + 1])
+            val dy2 = kotlin.math.abs(warped[idx2 + 1] - original[idx2 + 1])
+
+            // 인접 버텍스 간 변위 차이 비율 (기울기/왜곡률)
+            val gradient = kotlin.math.abs(dy2 - dy1) / cellH
+            if (gradient > maxDisplacementGradient) {
+                maxDisplacementGradient = gradient
+            }
+
+            val origY = original[idx1 + 1]
+            if (kotlin.math.abs(origY - chinY) < cellH) {
+                if (dy1 > maxChinLift) {
+                    maxChinLift = dy1
+                }
+            }
+        }
+
+        // 1. 최대 리프팅량이 과하지 않아야 함 (fh * 0.045f 이하, 과거 fh * 0.065f의 과함 방지)
+        Assert.assertTrue("Max chin lift ($maxChinLift) must be within natural limit (${fh * 0.045f})", maxChinLift <= fh * 0.045f)
+        Assert.assertTrue("Max chin lift ($maxChinLift) must be visible (> 10px)", maxChinLift > 10f)
+
+        // 2. 인접 버텍스 간 변위 기울기가 0.6 이하로 완만하여 메쉬 찢어짐(Tearing) 및 텍스처 깨짐이 없어야 함
+        Assert.assertTrue("Max displacement gradient ($maxDisplacementGradient) must be <= 0.6 to prevent tearing", maxDisplacementGradient <= 0.6f)
     }
 }
 

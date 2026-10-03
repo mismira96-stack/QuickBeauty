@@ -157,11 +157,17 @@ object BeautyFilterEngine {
 
         val chinToMouthSpan = max(10f, safeChinY - safeMouthY)
         val mouthToNoseSpan = max(10f, safeMouthY - safeNoseY)
-        // 턱 밑 감쇠 폭: 아기나 목이 짧은 체형에서 티셔츠/옷깃이 위로 빨려 올라가지 않도록 초근접 영역으로 제한
-        val neckSpan = min(fh * 0.12f, 25f).coerceAtLeast(8f)
+        // 턱 밑 감쇠 폭: 인체 비율과 얼굴 크기에 맞추어 부드럽게 감쇠 (고해상도 텍스처 깨짐 방지 및 옷깃 보호)
+        val maxAvailableNeck = if (hasBody && landmarks.leftShoulder.y > safeChinY + 15f) {
+            (landmarks.leftShoulder.y - safeChinY) * 0.85f
+        } else {
+            fh * 0.30f
+        }
+        val safeMaxNeck = max(8f, maxAvailableNeck)
+        val neckSpan = (fh * 0.14f).coerceIn(8f, safeMaxNeck)
         val safeNeckY = safeChinY + neckSpan
 
-        val maxChinLift = fh * 0.065f * faceLengthFactor * scaleDamping
+        val maxChinLift = fh * 0.040f * faceLengthFactor * scaleDamping
         val lengthInnerW = fw * 0.30f
         val lengthOuterW = fw * 0.85f
 
