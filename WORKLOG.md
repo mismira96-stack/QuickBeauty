@@ -261,3 +261,9 @@ app/src/main/java/com/mismira/quickbeauty/
 - testReleaseUnitTest: 22 tests, zero failures/errors; assembleRelease and bundleRelease passed.
 - Production draft replaces version 13 with 14. Final review submission remains manual.
 - A 16 KB emulator runtime test has not been performed. Pose SDK change needs device regression check.
+
+## 2026-10-07 — Launcher icon clipping fix
+- Adaptive foreground used a 1024px drawable-nodpi bitmap with gravity=center, preserving intrinsic pixels and cropping the white star on smaller launcher bounds.
+- Changed gravity to fill with bitmap filtering, preserving existing artwork while scaling to adaptive icon bounds.
+- Device-specific visual verification pending; no phone connected. No Play upload or version bump in this change.
+
