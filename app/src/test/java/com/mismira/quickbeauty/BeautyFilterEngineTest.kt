@@ -5,6 +5,21 @@ import org.junit.Test
 
 class BeautyFilterEngineTest {
 
+    @Test
+    fun testFaceSizeIncludesUpperHeadWithBalancedVerticalContraction() {
+        val lm = detectedFaceLandmarks(1000, 1000)
+        val vertices = BeautyFilterEngine.computeWarpedVertices(
+            1000, 1000, lm, BeautyAdjustParams(faceSize = 100), 100, 100)
+        fun yAt(row: Int) = vertices[(row * 101 + 50) * 2 + 1]
+        // These points are equidistant from the head center at y=320.
+        val upperShift = yAt(15) - 150f
+        val lowerShift = 490f - yAt(49)
+        Assert.assertTrue("Upper head must participate", upperShift > 5f)
+        Assert.assertEquals(upperShift, lowerShift, 0.001f)
+        Assert.assertEquals(0f, yAt(0), 0.001f)
+        Assert.assertEquals(1000f, yAt(100), 0.001f)
+    }
+
     private fun detectedFaceLandmarks(w: Int, h: Int): BeautyLandmarks {
         val lm = BeautyLandmarks(w, h)
         val x = w * 0.5f

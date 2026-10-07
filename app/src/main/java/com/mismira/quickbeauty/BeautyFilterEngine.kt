@@ -129,10 +129,14 @@ object BeautyFilterEngine {
         }
 
         // 1. 얼굴 전체 크기 축소 (소두 효과 - X/Y 비율 유지 전체 축소) 파라미터
-        val headRadius = max(fw, fh) * 0.70f
-        val headInnerR = headRadius * 0.60f
-        val headOuterR = headRadius * 1.35f
-        val maxHeadScale = 0.085f * faceSizeFactor * scaleDamping
+        // Include the forehead/crown beyond the detected face box so the
+        // lower face does not shrink independently of the upper head.
+        val headCenterY = fcY - fh * 0.12f
+        val headRadiusX = fw * 0.85f
+        val headRadiusY = fh * 1.05f
+        val headInnerR = 0.72f
+        val headOuterR = 1.35f
+        val maxHeadScale = 0.060f * faceSizeFactor * scaleDamping
 
         // 2. 턱선 V라인 슬림 파라미터
         val chinY = if (hasFace) landmarks!!.chinPoint.y else poseShoulderY - fh * 0.40f
@@ -238,8 +242,10 @@ object BeautyFilterEngine {
                 // ==========================================
                 if (faceSizeFactor > 0.001f && hasFace && !protectedOtherFace) {
                     val dx = origX - fcX
-                    val dy = origY - fcY
-                    val dist = sqrt(dx * dx + dy * dy)
+                    val dy = origY - headCenterY
+                    val nx = dx / headRadiusX
+                    val ny = dy / headRadiusY
+                    val dist = sqrt(nx * nx + ny * ny)
                     if (dist < headOuterR) {
                         val w = if (dist <= headInnerR) {
                             1.0f
@@ -247,9 +253,13 @@ object BeautyFilterEngine {
                             val t = (headOuterR - dist) / (headOuterR - headInnerR)
                             t * t * (3f - 2f * t)
                         }
-                        val s = maxHeadScale * w
+                        val edgeSpan = max(1f, min(fw, fh) * 0.25f)
+                        val edgeT = (min(min(origX, width - origX),
+                            min(origY, height - origY)) / edgeSpan).coerceIn(0f, 1f)
+                        val edgeWeight = edgeT * edgeT * (3f - 2f * edgeT)
+                        val s = maxHeadScale * w * edgeWeight
                         currX -= dx * s
-                        currY -= dy * s * 0.90f
+                        currY -= dy * s
                     }
                 }
 

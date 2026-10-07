@@ -267,3 +267,9 @@ app/src/main/java/com/mismira/quickbeauty/
 - Changed gravity to fill with bitmap filtering, preserving existing artwork while scaling to adaptive icon bounds.
 - Device-specific visual verification pending; no phone connected. No Play upload or version bump in this change.
 
+
+## 2026-10-07 — Small-face balance trial
+- Expanded radial face-only contraction to an upper-head ellipse centered 0.12 face heights above the face center; maximum contraction reduced from 8.5% to 6%.
+- Added image-edge falloff; jawline and face-length formulas unchanged.
+- 23 unit tests passed, including upper/lower contraction balance and fixed top/bottom edge regression. Release APK built; on-device visual acceptance pending. No Play upload.
+
