@@ -273,3 +273,11 @@ app/src/main/java/com/mismira/quickbeauty/
 - Added image-edge falloff; jawline and face-length formulas unchanged.
 - 23 unit tests passed, including upper/lower contraction balance and fixed top/bottom edge regression. Release APK built; on-device visual acceptance pending. No Play upload.
 
+
+## 2026-10-07 — QuickBeauty 1.1.2 (15) release preparation
+- Includes launcher foreground scaling fix and balanced small-face contraction.
+- User accepted device testing, including multiple faces; other adjustment formulas unchanged.
+- 23 unit tests passed; assembleRelease/bundleRelease passed; APK 16 KB ZIP alignment check passed.
+- Signed APK/AAB copied to release-apks/quickbeauty-1.1.2-code15-release.*.
+- Korean and English production release notes prepared.
+
