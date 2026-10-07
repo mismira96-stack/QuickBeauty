@@ -281,3 +281,6 @@ app/src/main/java/com/mismira/quickbeauty/
 - Signed APK/AAB copied to release-apks/quickbeauty-1.1.2-code15-release.*.
 - Korean and English production release notes prepared.
 
+- Play Console confirms production 1.1.2 is under review (full rollout); managed publishing disabled, so approval publishes automatically. No blocking errors; optional mapping/native-symbol warnings only.
+- Code and release preparation pushed to origin/codex/16kb-release.
+
