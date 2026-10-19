@@ -17,8 +17,9 @@ android {
         applicationId "com.quickbeauty.app"
         minSdk 29
         targetSdk 36
-        versionCode 15
-        versionName "1.1.2"
+        versionCode 17
+        versionName "1.1.4"
+        testInstrumentationRunner "com.quickbeauty.app.PhotoRegressionRunner"
     }
 
     signingConfigs {
@@ -43,6 +44,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
         release {
             signingConfig signingConfigs.release
             minifyEnabled false

@@ -12,14 +12,16 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 object BeautyFilterEngine {
-    const val MESH_W = 40
-    const val MESH_H = 40
+    const val MESH_W = 60
+    const val MESH_H = 60
 
     fun hasSupportedWarp(landmarks: BeautyLandmarks?, params: BeautyAdjustParams): Boolean {
         val faceRequested = params.faceSize > 0 || params.chinSlim > 0 || params.faceLength > 0
         val bodyRequested = params.shoulder > 0 || params.bodySlim > 0
+        val legRequested = params.legStretch > 0
         return (faceRequested && landmarks?.canAdjust() == true) ||
-            (bodyRequested && landmarks?.canAdjustBody() == true)
+            (bodyRequested && landmarks?.canAdjustBody() == true) ||
+            (legRequested && landmarks?.canAdjustLegs() == true)
     }
 
     fun getCoolToneMatrixArray(coolTone: Int): FloatArray {
@@ -33,21 +35,107 @@ object BeautyFilterEngine {
         }
 
         val f = coolTone / 100.0f
-        val rScale = 1.0f - f * 0.01f
-        val gScale = 1.0f - f * 0.07f
-        val bScale = 1.0f + f * 0.16f
-        val brightness = f * 20.0f
+        val rScale = 1.0f - f * 0.015f
+        val gScale = 1.0f - f * 0.06f
+        val bScale = 1.0f + f * 0.18f
+        val brightness = f * 32.0f
 
         return floatArrayOf(
-            rScale, 0f, 0f, 0f, brightness * 0.85f,
-            0f, gScale, 0f, 0f, brightness * 0.75f,
-            0f, 0f, bScale, 0f, brightness * 1.25f,
+            rScale, 0f, 0f, 0f, brightness * 0.90f,
+            0f, gScale, 0f, 0f, brightness * 0.85f,
+            0f, 0f, bScale, 0f, brightness * 1.20f,
             0f, 0f, 0f, 1f, 0f
         )
     }
 
     fun createCoolToneMatrix(coolTone: Int): ColorMatrix {
         return ColorMatrix(getCoolToneMatrixArray(coolTone))
+    }
+
+    /** Source mesh point mapping (used for selection geometry). */
+    fun warpPoint(
+        origX: Float,
+        origY: Float,
+        verts: FloatArray?,
+        meshW: Int,
+        meshH: Int,
+        width: Float,
+        height: Float
+    ): BeautyLandmarks.Point {
+        if (verts == null || verts.isEmpty() || width <= 0f || height <= 0f) {
+            return BeautyLandmarks.Point(origX, origY)
+        }
+        val cellW = width / meshW
+        val cellH = height / meshH
+        val c = (origX / cellW).toInt().coerceIn(0, meshW - 1)
+        val r = (origY / cellH).toInt().coerceIn(0, meshH - 1)
+        val u = ((origX - c * cellW) / cellW).coerceIn(0f, 1f)
+        val v = ((origY - r * cellH) / cellH).coerceIn(0f, 1f)
+
+        val stride = (meshW + 1) * 2
+        val tl = r * stride + c * 2
+        val tr = tl + 2
+        val bl = (r + 1) * stride + c * 2
+        val br = bl + 2
+
+        if (br + 1 >= verts.size) return BeautyLandmarks.Point(origX, origY)
+
+        val topX = verts[tl] * (1f - u) + verts[tr] * u
+        val topY = verts[tl + 1] * (1f - u) + verts[tr + 1] * u
+        val botX = verts[bl] * (1f - u) + verts[br] * u
+        val botY = verts[bl + 1] * (1f - u) + verts[br + 1] * u
+
+        val warpedX = topX * (1f - v) + botX * v
+        val warpedY = topY * (1f - v) + botY * v
+        return BeautyLandmarks.Point(warpedX, warpedY)
+    }
+
+    /** Source-space makeup layers share the photo's mesh, including clipping. */
+    fun renderVitality(
+        canvas: Canvas,
+        landmarks: BeautyLandmarks?,
+        params: BeautyAdjustParams,
+        faceParamsByIndex: Map<Int, BeautyAdjustParams> = emptyMap(),
+        verts: FloatArray? = null,
+        meshW: Int = MESH_W,
+        meshH: Int = MESH_H,
+        imageW: Int = landmarks?.imageWidth ?: 0,
+        imageH: Int = landmarks?.imageHeight ?: 0
+    ) {
+        val scaled = landmarks?.let {
+            if (imageW > 0 && imageH > 0 && (it.imageWidth != imageW || it.imageHeight != imageH))
+                it.scaleTo(imageW, imageH) else it
+        }
+        val layers = VitalityRenderer.build(scaled, params, faceParamsByIndex, meshW, meshH)
+        try { VitalityRenderer.draw(canvas, layers, verts) }
+        finally { VitalityRenderer.recycle(layers) }
+    }
+
+    internal data class LegTransform(val start: Float, val end: Float, val crop: Float) {
+        fun shift(y: Float): Float {
+            if (y >= end) return 0f
+            if (y <= start) return -crop
+            val t = ((y - start) / (end - start)).coerceIn(0f, 1f)
+            return -crop * (1f - t * t * (3f - 2f * t))
+        }
+    }
+
+    internal fun legTransform(lm: BeautyLandmarks?, amount: Int, meshH: Int = MESH_H): LegTransform {
+        if (lm == null || !lm.canAdjustLegs() || amount <= 0) return LegTransform(0f, 1f, 0f)
+        val h = lm.imageHeight.toFloat()
+        val hip = lm.legHip()
+        val upperAnkle = listOf(lm.leftAnkle.y, lm.rightAnkle.y).filter { it > hip && it < h }.minOrNull()
+            ?: lm.legLower()
+        // Start protection above the higher ankle. Snap to a mesh row so no cell
+        // crossing the protection line interpolates a stretch into the shoe area.
+        val cell = h / meshH
+        val end = kotlin.math.floor((upperAnkle - h * 0.04f) / cell) * cell
+        val start = hip + (end - hip) * 0.025f
+        val faces = lm.safetyFaceBounds.ifEmpty { lm.allFaces.map { it.bounds } }
+        val headroom = if (faces.isEmpty()) h * 0.025f else
+            faces.minOf { it.top - it.height() * 0.5f - h * 0.025f }.coerceAtLeast(0f)
+        val crop = min(max(0f, end - start) * 0.13f, headroom) * (amount / 100f).coerceIn(0f, 1f)
+        return LegTransform(start, max(start + 1f, end), crop)
     }
 
     fun computeWarpedVertices(
@@ -70,7 +158,7 @@ object BeautyFilterEngine {
             }
             val displacement = FloatArray(base.size)
             for (face in landmarks.allFaces) {
-                val faceParams = faceParamsByIndex[face.index] ?: continue
+                val faceParams = faceParamsByIndex[face.index]?.copy(legStretch = 0, shoulder = 0, bodySlim = 0) ?: continue
                 if (faceParams.faceSize == 0 && faceParams.chinSlim == 0 && faceParams.faceLength == 0) continue
                 val perFace = landmarks.scaleTo(width, height).also {
                     it.selectedFaceIndex = face.index
@@ -80,6 +168,11 @@ object BeautyFilterEngine {
                 }
                 val warped = computeWarpedVertices(width, height, perFace, faceParams, meshW, meshH)
                 for (j in warped.indices) displacement[j] += warped[j] - base[j]
+            }
+            // 단체 전신 사진: 모든 사람이 서 있을 때 함께 다리 길이 연장 적용
+            if (params.legStretch > 0 && landmarks.canAdjustLegs(meshW, meshH)) {
+                val legWarped = computeWarpedVertices(width, height, landmarks, BeautyAdjustParams(legStretch = params.legStretch), meshW, meshH)
+                for (j in legWarped.indices) displacement[j] += legWarped[j] - base[j]
             }
             for (j in base.indices) base[j] += displacement[j]
             return base
@@ -227,6 +320,9 @@ object BeautyFilterEngine {
         val rawHalfWidth = (landmarks?.bodyBounds?.width() ?: (fw * 1.6f)) * 0.55f
         val bodyHalfWidth = min(rawHalfWidth, fw * 2.2f)
 
+        // 6. 다리 길이 연장 파라미터 (골반 아래~발목 자연스러운 하체 비율 연장)
+        val legTransform = legTransform(landmarks, params.legStretch, meshH)
+
         var index = 0
         for (r in 0..meshH) {
             val origY = r.toFloat() * height / meshH
@@ -258,8 +354,8 @@ object BeautyFilterEngine {
                             min(origY, height - origY)) / edgeSpan).coerceIn(0f, 1f)
                         val edgeWeight = edgeT * edgeT * (3f - 2f * edgeT)
                         val s = maxHeadScale * w * edgeWeight
-                        currX -= dx * s
-                        currY -= dy * s
+                        currX -= dx * s * 1.35f
+                        currY -= dy * s * 0.70f
                     }
                 }
 
@@ -417,6 +513,15 @@ object BeautyFilterEngine {
                     }
                 }
 
+                // ==========================================
+                // 6. 다리 길이 늘리기 (Leg Stretch)
+                // 골반 아래부터 발목까지 아래로 자연스럽게 연장
+                // 배경 왜곡/타일 휨 방지를 위해 수평 전체에 균일한 Y축 연장 적용
+                // ==========================================
+                // Equivalent to translating the lower section down and cropping
+                // the same amount from the top. Shoes and ground remain rigid.
+                currY += legTransform.shift(origY)
+
                 verts[index++] = currX
                 verts[index++] = currY
             }
@@ -442,22 +547,30 @@ object BeautyFilterEngine {
             paint.colorFilter = ColorMatrixColorFilter(cm)
         }
 
-        val needWarp = hasSupportedWarp(landmarks, params) || faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 }
+        val scaledLandmarks = if (landmarks != null) {
+            if (landmarks.imageWidth == w && landmarks.imageHeight == h) landmarks
+            else landmarks.scaleTo(w, h)
+        } else null
+
+        val needWarp = (hasSupportedWarp(scaledLandmarks, params) || faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 }) && scaledLandmarks != null
+        val verts: FloatArray?
+        val meshW: Int
+        val meshH: Int
         if (needWarp) {
-            val validLandmarks = landmarks!!
-            val scaledLandmarks = if (validLandmarks.imageWidth == w && validLandmarks.imageHeight == h) {
-                validLandmarks
-            } else {
-                validLandmarks.scaleTo(w, h)
-            }
+            val validLandmarks = scaledLandmarks!!
             // 고해상도 이미지일 경우 더 정밀한 60x60 메쉬 적용으로 초고화질 곡선 완벽 보존
-            val meshW = if (w >= 2000 || h >= 2000) 60 else MESH_W
-            val meshH = if (w >= 2000 || h >= 2000) 60 else MESH_H
-            val verts = computeWarpedVertices(w, h, scaledLandmarks, params, meshW, meshH, faceParamsByIndex)
+            meshW = if (w >= 2000 || h >= 2000) 60 else MESH_W
+            meshH = if (w >= 2000 || h >= 2000) 60 else MESH_H
+            verts = computeWarpedVertices(w, h, validLandmarks, params, meshW, meshH, faceParamsByIndex)
             canvas.drawBitmapMesh(source, meshW, meshH, verts, 0, null, 0, paint)
         } else {
+            verts = null
+            meshW = MESH_W
+            meshH = MESH_H
             canvas.drawBitmap(source, 0f, 0f, paint)
         }
+
+        renderVitality(canvas, scaledLandmarks, params, faceParamsByIndex, verts, meshW, meshH, w, h)
 
         return output
     }

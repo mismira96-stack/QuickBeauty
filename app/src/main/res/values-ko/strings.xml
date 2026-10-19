@@ -11,27 +11,32 @@
     <string name="btn_save">저장</string>
 
     <string name="tab_tone">쿨톤</string>
+    <string name="tab_vitality">생기</string>
     <string name="tab_face_size">작은얼굴</string>
     <string name="tab_chin_slim">턱선</string>
     <string name="tab_face_length">얼굴길이</string>
     <string name="tab_shoulder">어깨</string>
     <string name="tab_body_slim">몸매</string>
+    <string name="tab_legs">다리길이</string>
 
     <string name="badge_original">원본 비교 중</string>
-    <string name="coach_mark_hold_to_compare">길게 눌러 원본 보기</string>
+    <string name="coach_mark_hold_to_compare">두 손가락으로 확대 · 길게 눌러 원본 보기</string>
     <string name="coach_mark_face_limited_body_available">얼굴 보정 제한 · 체형/쿨톤 가능</string>
     <string name="coach_mark_face_small_tone_available">얼굴이 작아 형태 보정 불가 · 쿨톤 가능</string>
     <string name="coach_mark_no_face_body_available">얼굴 미감지 · 체형/쿨톤 가능</string>
     <string name="coach_mark_no_face_tone_available">얼굴 미감지: 형태 보정 불가 · 쿨톤 가능</string>
-    <string name="coach_mark_multiple_faces_body_unavailable">여러 얼굴 감지 · 얼굴 보정 가능</string>
+    <string name="coach_mark_no_legs_available">다리 미감지 · 전신 사진에서 가능</string>
+    <string name="coach_mark_multiple_faces_body_unavailable">여러 명 사진은 어깨·체형 보정 제한 · 얼굴 보정 가능</string>
+    <string name="coach_mark_multiple_faces_legs_shared">함께 서 계신 분들도 비율이 함께 보정됩니다 ✨</string>
+    <string name="coach_mark_sitting_face_legs_unavailable">얼굴이 보정 영역과 겹쳐 다리길이 보정이 제한됩니다</string>
 
     <string name="toast_person_selected">인물 선택됨 ✨</string>
     <string name="toast_error_photo_picker">사진 선택기를 열 수 없습니다.</string>
     <string name="toast_error_privacy_policy">개인정보처리방침을 열 수 없습니다.</string>
     <string name="toast_error_load_image">사진을 불러올 수 없습니다.</string>
-    <string name="toast_reset_complete">보정 수치가 초기화되었습니다.</string>
-    <string name="toast_save_not_ready">저장할 이미지가 준비되지 않았습니다.</string>
-    <string name="toast_saving_high_res">원본 초고화질로 보정하여 저장 중...</string>
-    <string name="toast_save_success">새 사진으로 저장 완료! ✨ (갤러리 최신 사진)</string>
-    <string name="toast_save_failed">저장에 실패했습니다.</string>
+    <string name="toast_reset_complete">보정이 초기화되었습니다.</string>
+    <string name="toast_save_not_ready">저장할 사진이 준비되지 않았습니다.</string>
+    <string name="toast_saving_high_res">고화질 원본으로 저장하는 중…</string>
+    <string name="toast_save_success">새 사진으로 저장되었습니다! ✨ (갤러리 저장됨)</string>
+    <string name="toast_save_failed">사진 저장에 실패했습니다.</string>
 </resources>

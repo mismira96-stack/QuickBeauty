@@ -11,19 +11,24 @@
     <string name="btn_save">Save</string>
 
     <string name="tab_tone">Tone</string>
-    <string name="tab_face_size">Face Ratio</string>
-    <string name="tab_chin_slim">Jawline</string>
-    <string name="tab_face_length">Chin Lift</string>
-    <string name="tab_shoulder">Shoulders</string>
-    <string name="tab_body_slim">Body Slim</string>
+    <string name="tab_vitality">Vitality</string>
+    <string name="tab_face_size">Face</string>
+    <string name="tab_chin_slim">Jaw</string>
+    <string name="tab_face_length">Lift</string>
+    <string name="tab_shoulder">Shoulder</string>
+    <string name="tab_body_slim">Body</string>
+    <string name="tab_legs">Legs</string>
 
     <string name="badge_original">Comparing with original</string>
-    <string name="coach_mark_hold_to_compare">Hold to view original</string>
+    <string name="coach_mark_hold_to_compare">Pinch to zoom · Hold to view original</string>
     <string name="coach_mark_face_limited_body_available">Face reshape limited · Body &amp; Tone available</string>
     <string name="coach_mark_face_small_tone_available">Face too small to reshape · Tone available</string>
     <string name="coach_mark_no_face_body_available">No face detected · Body &amp; Tone available</string>
     <string name="coach_mark_no_face_tone_available">No face detected · Tone available</string>
-    <string name="coach_mark_multiple_faces_body_unavailable">Multiple faces detected · Face edits available</string>
+    <string name="coach_mark_no_legs_available">Legs not detected · Try a full-body photo</string>
+    <string name="coach_mark_multiple_faces_body_unavailable">Group photo: shoulder/body edits unavailable · Face edits available</string>
+    <string name="coach_mark_multiple_faces_legs_shared">Leg stretch applies to everyone standing in the photo ✨</string>
+    <string name="coach_mark_sitting_face_legs_unavailable">Leg stretch unavailable · A face overlaps the adjustment area</string>
 
     <string name="toast_person_selected">Person selected ✨</string>
     <string name="toast_error_photo_picker">Unable to open photo picker.</string>

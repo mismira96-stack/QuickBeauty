@@ -1,0 +1,17 @@
+{
+  "package": "com.quickbeauty.app",
+  "track": "production",
+  "releaseName": "QuickBeauty 1.1.4 - 생기 및 얼굴 선택 개선",
+  "versionCode": "17",
+  "status": "draft",
+  "releaseNotes": [
+    {
+      "language": "ko-KR",
+      "text": "생기 보정으로 은은한 볼터치와 립 컬러를 더할 수 있습니다.\n생기를 얼굴·다리길이 보정과 함께 사용할 때 위치가 자연스럽게 맞도록 개선했습니다.\n여러 얼굴의 선택과 개별 보정값 저장·초기화 동작을 개선했습니다.\n쿨톤 보정의 밝기를 조정했습니다."
+    },
+    {
+      "language": "en-US",
+      "text": "Add a subtle blush and lip tint with Vitality.\nMakeup now follows face and leg-length adjustments.\nImproved face selection and saving or resetting individual face edits.\nAdjusted brightness in the Tone filter."
+    }
+  ]
+}

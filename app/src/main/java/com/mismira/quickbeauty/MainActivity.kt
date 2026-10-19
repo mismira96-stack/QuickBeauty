@@ -9,7 +9,7 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.MotionEvent
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -36,12 +36,13 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAB_COOL_TONE = 0
-        private const val TAB_FACE_SIZE = 1
-        private const val TAB_CHIN_SLIM = 2
-        private const val TAB_FACE_LENGTH = 3
-        private const val TAB_SHOULDER = 4
-        private const val TAB_BODY_SLIM = 5
-        private const val LONG_PRESS_TIMEOUT_MS = 300L
+        private const val TAB_VITALITY = 1
+        private const val TAB_FACE_SIZE = 2
+        private const val TAB_CHIN_SLIM = 3
+        private const val TAB_FACE_LENGTH = 4
+        private const val TAB_SHOULDER = 5
+        private const val TAB_BODY_SLIM = 6
+        private const val TAB_LEG_STRETCH = 7
     }
 
     private var currentTab = TAB_COOL_TONE
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var topBarStatusBarSpacer: View
     private lateinit var topBarContent: View
     private lateinit var bottomControlPanel: View
+    private lateinit var tabScrollView: android.widget.HorizontalScrollView
     private lateinit var btnReset: View
     private lateinit var btnSave: View
     private lateinit var txtParamValue: TextView
@@ -72,17 +74,9 @@ class MainActivity : AppCompatActivity() {
     private val faceParamsByIndex = mutableMapOf<Int, BeautyAdjustParams>()
     private var detector: FaceBodyDetector? = null
 
-    private var touchDownTime = 0L
-    private var touchDownX = 0f
-    private var touchDownY = 0f
-    private var isShowingOriginal = false
     private var selectionToast: Toast? = null
     private var isSaving = false
-    private val showOriginalRunnable = Runnable {
-        isShowingOriginal = true
-        previewView.setShowOriginal(true)
-        badgeOriginal.visibility = View.VISIBLE
-    }
+    private var imageLoadGeneration = 0
 
     private val prefs by lazy { getSharedPreferences("quick_beauty_prefs", Context.MODE_PRIVATE) }
 
@@ -120,6 +114,7 @@ class MainActivity : AppCompatActivity() {
         topBarStatusBarSpacer = findViewById(R.id.topBarStatusBarSpacer)
         topBarContent = findViewById(R.id.topBarContent)
         bottomControlPanel = findViewById(R.id.bottomControlPanel)
+        tabScrollView = findViewById(R.id.tabScrollView)
         previewView = findViewById(R.id.previewView)
         badgeOriginal = findViewById(R.id.badgeOriginal)
         hintCoachMark = findViewById(R.id.hintCoachMark)
@@ -132,35 +127,43 @@ class MainActivity : AppCompatActivity() {
 
         tabContainers = listOf(
             findViewById(R.id.tabCoolTone),
+            findViewById(R.id.tabVitality),
             findViewById(R.id.tabFaceSize),
             findViewById(R.id.tabChinSlim),
             findViewById(R.id.tabFaceLength),
             findViewById(R.id.tabShoulder),
-            findViewById(R.id.tabBodySlim)
+            findViewById(R.id.tabBodySlim),
+            findViewById(R.id.tabLegStretch)
         )
         tabIconBgs = listOf(
             findViewById(R.id.iconBgCoolTone),
+            findViewById(R.id.iconBgVitality),
             findViewById(R.id.iconBgFaceSize),
             findViewById(R.id.iconBgChinSlim),
             findViewById(R.id.iconBgFaceLength),
             findViewById(R.id.iconBgShoulder),
-            findViewById(R.id.iconBgBodySlim)
+            findViewById(R.id.iconBgBodySlim),
+            findViewById(R.id.iconBgLegStretch)
         )
         tabIcons = listOf(
             findViewById(R.id.iconCoolTone),
+            findViewById(R.id.iconVitality),
             findViewById(R.id.iconFaceSize),
             findViewById(R.id.iconChinSlim),
             findViewById(R.id.iconFaceLength),
             findViewById(R.id.iconShoulder),
-            findViewById(R.id.iconBodySlim)
+            findViewById(R.id.iconBodySlim),
+            findViewById(R.id.iconLegStretch)
         )
         tabLabels = listOf(
             findViewById(R.id.txtTabCoolTone),
+            findViewById(R.id.txtTabVitality),
             findViewById(R.id.txtTabFaceSize),
             findViewById(R.id.txtTabChinSlim),
             findViewById(R.id.txtTabFaceLength),
             findViewById(R.id.txtTabShoulder),
-            findViewById(R.id.txtTabBodySlim)
+            findViewById(R.id.txtTabBodySlim),
+            findViewById(R.id.txtTabLegStretch)
         )
 
         findViewById<View>(R.id.btnClose).setOnClickListener { finish() }
@@ -183,24 +186,14 @@ class MainActivity : AppCompatActivity() {
         })
 
 
-        val touchCompareListener = View.OnTouchListener { v, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    touchDownX = event.x
-                    touchDownY = event.y
-                    touchDownTime = System.currentTimeMillis()
-                    isShowingOriginal = false
-
-                    // [공간 기반 분기]: 터치한 지점이 얼굴 영역인가?
-                    val tappedIndex = previewView.findFaceAt(event.x, event.y)
-                    val lm = detectedLandmarks
-
-                    if (tappedIndex != null && lm != null && lm.allFaces.size > 1) {
-                        // 1. 얼굴은 즉시 선택하되, 길게 누르면 사진 전체의 원본 비교도 허용한다.
+        previewView.onFaceTapped = { tappedIndex ->
+            val lm = detectedLandmarks
+            if (lm != null && lm.allFaces.size > 1) {
                         if (tappedIndex != lm.selectedFaceIndex) {
-                            faceParamsByIndex[lm.selectedFaceIndex] = params.copy(coolTone = 0)
+                            faceParamsByIndex[lm.selectedFaceIndex] = params.copy(coolTone = 0, legStretch = 0)
                             detector?.switchToFace(lm, tappedIndex)
                             val targetParams = faceParamsByIndex[tappedIndex]
+                            params.vitality = targetParams?.vitality ?: 0
                             params.faceSize = targetParams?.faceSize ?: 0
                             params.chinSlim = targetParams?.chinSlim ?: 0
                             params.faceLength = targetParams?.faceLength ?: 0
@@ -211,6 +204,7 @@ class MainActivity : AppCompatActivity() {
                             previewView.setFaceParams(faceParamsByIndex)
                             // 전환된 얼굴의 저장값을 슬라이더와 숫자 표시에도 즉시 반영한다.
                             selectTab(currentTab)
+                            updateResetButton()
                             previewView.showFocusIndicator()
                             selectionToast?.cancel()
                             selectionToast = Toast.makeText(this, getString(R.string.toast_person_selected), Toast.LENGTH_SHORT)
@@ -218,27 +212,11 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             previewView.showFocusIndicator()
                         }
-                        // 짧은 탭은 얼굴 선택, 홀드는 전체 before/after 비교
-                        v.handler?.postDelayed(showOriginalRunnable, LONG_PRESS_TIMEOUT_MS)
-                    } else {
-                        // 2. 얼굴 제외한 다른 영역(배경/몸 등) 터치 -> 150ms 후 시원하게 원본 비교 실행!
-                        v.handler?.postDelayed(showOriginalRunnable, 150)
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    v.handler?.removeCallbacks(showOriginalRunnable)
-                    if (isShowingOriginal) {
-                        previewView.setShowOriginal(false)
-                        badgeOriginal.visibility = View.GONE
-                    }
-                    true
-                }
-                else -> false
             }
         }
-
-        previewView.setOnTouchListener(touchCompareListener)
+        previewView.onCompareChanged = { showing ->
+            badgeOriginal.visibility = if (showing) View.VISIBLE else View.GONE
+        }
 
         selectTab(TAB_COOL_TONE)
         updateResetButton()
@@ -284,12 +262,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadSavedPreferences() {
         val c = prefs.getInt("pref_cool_tone", 0)
+        val v = prefs.getInt("pref_vitality", 0)
         val fs = prefs.getInt("pref_face_size", prefs.getInt("pref_face_slim", 0))
         val cs = prefs.getInt("pref_chin_slim", 0)
         val fl = prefs.getInt("pref_face_length", 0)
         val sh = prefs.getInt("pref_shoulder", 0)
         val b = prefs.getInt("pref_body_slim", 0)
-        params.set(c, fs, cs, fl, sh, b)
+        val leg = prefs.getInt("pref_leg_stretch", 0)
+        params.set(c, fs, cs, fl, sh, b, leg, v)
         selectTab(currentTab)
         updateResetButton()
     }
@@ -297,17 +277,19 @@ class MainActivity : AppCompatActivity() {
     private fun savePreferences() {
         prefs.edit()
             .putInt("pref_cool_tone", params.coolTone)
+            .putInt("pref_vitality", params.vitality)
             .putInt("pref_face_size", params.faceSize)
             .putInt("pref_face_slim", params.faceSize)
             .putInt("pref_chin_slim", params.chinSlim)
             .putInt("pref_face_length", params.faceLength)
             .putInt("pref_shoulder", params.shoulder)
             .putInt("pref_body_slim", params.bodySlim)
+            .putInt("pref_leg_stretch", params.legStretch)
             .apply()
     }
 
     private fun showCoachMarkIfNeeded() {
-        val shownCount = prefs.getInt("coach_mark_shown_count", 0)
+        val shownCount = prefs.getInt("zoom_coach_mark_shown_count", 0)
         if (shownCount < 2) {
             hintCoachMark.text = getString(R.string.coach_mark_hold_to_compare)
             hintCoachMark.alpha = 1f
@@ -321,7 +303,7 @@ class MainActivity : AppCompatActivity() {
                         .start()
                 }
             }, 2500)
-            prefs.edit().putInt("coach_mark_shown_count", shownCount + 1).apply()
+            prefs.edit().putInt("zoom_coach_mark_shown_count", shownCount + 1).apply()
         } else {
             hintCoachMark.visibility = View.GONE
         }
@@ -406,14 +388,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadImage(uri: Uri) {
         if (isSaving) return
+        val generation = ++imageLoadGeneration
         this.targetImageUri = uri
+        detectedLandmarks = null
+        previewBitmap = null
+        faceParamsByIndex.clear()
+        params.reset()
+        hintCoachMark.animate().cancel()
+        hintCoachMark.visibility = View.GONE
+        badgeOriginal.visibility = View.GONE
+        previewView.setShowOriginal(false)
+        previewView.setSource(null, null)
+        previewView.setFaceParams(emptyMap())
+        previewView.setParams(params)
+        selectTab(currentTab)
+        updateResetButton()
         progressBar.visibility = View.VISIBLE
 
         lifecycleScope.launch {
             val bmp = withContext(Dispatchers.IO) {
-                BeautyBitmapUtils.decodeSampledBitmapFromUri(this@MainActivity, uri, 1920)
+                BeautyBitmapUtils.decodeSampledBitmapFromUri(this@MainActivity, uri, BeautyBitmapUtils.PREVIEW_MAX_DIMENSION)
             }
 
+            if (generation != imageLoadGeneration || isDestroyed) {
+                bmp?.recycle()
+                return@launch
+            }
             if (bmp == null) {
                 progressBar.visibility = View.GONE
                 Toast.makeText(this@MainActivity, getString(R.string.toast_error_load_image), Toast.LENGTH_SHORT).show()
@@ -426,12 +426,16 @@ class MainActivity : AppCompatActivity() {
             params.reset()
 
             detector?.detect(bmp) { landmarks ->
+                if (generation != imageLoadGeneration || isDestroyed) {
+                    bmp.recycle()
+                    return@detect
+                }
                 detectedLandmarks = landmarks
                 progressBar.visibility = View.GONE
                 previewView.setSource(bmp, landmarks)
                 previewView.setParams(params)
-                updateAdjustmentAvailability()
-                if (landmarks.canAdjust()) showCoachMarkIfNeeded()
+                selectTab(currentTab)
+                if (landmarks.canAdjust() && currentTab != TAB_SHOULDER && currentTab != TAB_BODY_SLIM && currentTab != TAB_LEG_STRETCH) showCoachMarkIfNeeded()
             }
         }
     }
@@ -459,36 +463,68 @@ class MainActivity : AppCompatActivity() {
 
         val currentVal = when (tab) {
             TAB_COOL_TONE -> params.coolTone
+            TAB_VITALITY -> params.vitality
             TAB_FACE_SIZE -> params.faceSize
             TAB_CHIN_SLIM -> params.chinSlim
             TAB_FACE_LENGTH -> params.faceLength
             TAB_SHOULDER -> params.shoulder
             TAB_BODY_SLIM -> params.bodySlim
+            TAB_LEG_STRETCH -> params.legStretch
             else -> params.coolTone
         }
 
         txtParamValue.text = currentVal.toString()
         seekBarAdjust.progress = currentVal
         updateAdjustmentAvailability()
+
+        tabScrollView.post {
+            val targetView = tabContainers.getOrNull(tab) ?: return@post
+            val scrollX = targetView.left - (tabScrollView.width - targetView.width) / 2
+            tabScrollView.smoothScrollTo(max(0, scrollX), 0)
+        }
     }
 
     private fun updateAdjustmentAvailability() {
         val lm = detectedLandmarks
         val canAdjustFace = lm?.canAdjust() == true
         val canAdjustBody = lm?.canAdjustBody() == true
+        val canAdjustLegs = lm?.canAdjustLegs() == true
         seekBarAdjust.isEnabled = when (currentTab) {
             TAB_COOL_TONE -> true
+            TAB_VITALITY -> lm?.hasFace == true
             TAB_SHOULDER, TAB_BODY_SLIM -> canAdjustBody
+            TAB_LEG_STRETCH -> canAdjustLegs
             else -> canAdjustFace
         }
-        btnSave.isEnabled = lm != null && (canAdjustFace || canAdjustBody || params.coolTone > 0)
+        btnSave.isEnabled = !isSaving && lm != null && (canAdjustFace || canAdjustBody || canAdjustLegs ||
+            params.hasAnyEffect() || faceParamsByIndex.values.any { it.hasAnyEffect() })
         btnSave.alpha = if (btnSave.isEnabled) 1f else 0.5f
-        if (lm != null && lm.allFaces.size > 1 && !canAdjustBody) {
+        if (lm != null && canAdjustFace && lm.allFaces.size > 1 && !canAdjustBody &&
+            (currentTab == TAB_SHOULDER || currentTab == TAB_BODY_SLIM)) {
             hintCoachMark.animate().cancel()
             hintCoachMark.text = getString(R.string.coach_mark_multiple_faces_body_unavailable)
             hintCoachMark.alpha = 1f
             hintCoachMark.visibility = View.VISIBLE
-        } else if (lm != null && !canAdjustFace) {
+        } else if (lm != null && currentTab == TAB_LEG_STRETCH) {
+            hintCoachMark.animate().cancel()
+            if (canAdjustLegs) {
+                if (lm.allFaces.size > 1) {
+                    hintCoachMark.text = getString(R.string.coach_mark_multiple_faces_legs_shared)
+                    hintCoachMark.alpha = 1f
+                    hintCoachMark.visibility = View.VISIBLE
+                } else if (hintCoachMark.text != getString(R.string.coach_mark_hold_to_compare)) {
+                    hintCoachMark.visibility = View.GONE
+                }
+            } else {
+                hintCoachMark.text = if (lm.hasSittingPersonNearLegs()) {
+                    getString(R.string.coach_mark_sitting_face_legs_unavailable)
+                } else {
+                    getString(R.string.coach_mark_no_legs_available)
+                }
+                hintCoachMark.alpha = 1f
+                hintCoachMark.visibility = View.VISIBLE
+            }
+        } else if (lm != null && !canAdjustFace && currentTab != TAB_LEG_STRETCH && currentTab != TAB_VITALITY) {
             hintCoachMark.animate().cancel()
             hintCoachMark.text = if (lm.hasFace) {
                 if (canAdjustBody) getString(R.string.coach_mark_face_limited_body_available)
@@ -509,18 +545,20 @@ class MainActivity : AppCompatActivity() {
         txtParamValue.text = progress.toString()
         when (currentTab) {
             TAB_COOL_TONE -> params.coolTone = progress
+            TAB_VITALITY -> params.vitality = progress
             TAB_FACE_SIZE -> params.faceSize = progress
             TAB_CHIN_SLIM -> params.chinSlim = progress
             TAB_FACE_LENGTH -> params.faceLength = progress
             TAB_SHOULDER -> params.shoulder = progress
             TAB_BODY_SLIM -> params.bodySlim = progress
+            TAB_LEG_STRETCH -> params.legStretch = progress
         }
         applyProgressInternal(progress)
     }
 
     private fun applyProgressInternal(progress: Int) {
-        if (currentTab != TAB_COOL_TONE && (detectedLandmarks?.allFaces?.size ?: 0) > 1) {
-            faceParamsByIndex[detectedLandmarks!!.selectedFaceIndex] = params.copy(coolTone = 0)
+        if (currentTab != TAB_COOL_TONE && currentTab != TAB_LEG_STRETCH && (detectedLandmarks?.allFaces?.size ?: 0) > 1) {
+            faceParamsByIndex[detectedLandmarks!!.selectedFaceIndex] = params.copy(coolTone = 0, legStretch = 0)
         }
         savePreferences()
         updateResetButton()
@@ -530,7 +568,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateResetButton() {
-        btnReset.visibility = if (params.hasAnyEffect()) View.VISIBLE else View.GONE
+        val hasAny = params.hasAnyEffect() || faceParamsByIndex.values.any { it.hasAnyEffect() }
+        btnReset.visibility = if (hasAny) View.VISIBLE else View.GONE
     }
 
     private fun resetAll() {

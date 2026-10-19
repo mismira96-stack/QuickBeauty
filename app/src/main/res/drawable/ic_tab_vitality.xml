@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 입술 외곽 라인 -->
+    <path
+        android:pathData="M3.5,12.5 C4.8,10.2 7.8,8.8 10.5,9.8 C11.3,10.1 11.7,10.5 12,10.5 C12.3,10.5 12.7,10.1 13.5,9.8 C16.2,8.8 19.2,10.2 20.5,12.5 C19.2,15.8 15.5,18.5 12,18.5 C8.5,18.5 4.8,15.8 3.5,12.5 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- 입술 중앙 분할 라인 -->
+    <path
+        android:pathData="M4.5,12.5 C7.5,14 10.5,13.2 12,13.2 C13.5,13.2 16.5,14 19.5,12.5"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- 생기 반짝임 스파클 (좌상단 작은 빛) -->
+    <path
+        android:pathData="M18.5,4.5 L19.2,6.2 L21,6.8 L19.2,7.5 L18.5,9.2 L17.8,7.5 L16,6.8 L17.8,6.2 Z"
+        android:fillColor="#FFFFFF" />
+</vector>

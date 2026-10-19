@@ -51,11 +51,15 @@ class BeautyLandmarks(
         val leftCheek: Point = Point(),
         val rightCheek: Point = Point(),
         val mouthPoint: Point = Point(),
-        val noseBase: Point = Point()
+        val noseBase: Point = Point(),
+        val upperLipPoints: MutableList<Point> = mutableListOf(),
+        val lowerLipPoints: MutableList<Point> = mutableListOf(),
+        val lipPoints: MutableList<Point> = mutableListOf()
     )
 
     // 다중 얼굴 목록 및 현재 선택된 얼굴 인덱스
     val allFaces = mutableListOf<FaceInfo>()
+    val safetyFaceBounds = mutableListOf<Rect>()
     var selectedFaceIndex: Int = 0
 
     // 현재 선택된 메인 얼굴 정보 (하위 호환)
@@ -69,6 +73,9 @@ class BeautyLandmarks(
     val rightCheek = Point()
     val mouthPoint = Point()
     val noseBase = Point()
+    val upperLipPoints = mutableListOf<Point>()
+    val lowerLipPoints = mutableListOf<Point>()
+    val lipPoints = mutableListOf<Point>()
 
     // 신체 정보 (선택된 얼굴과 물리적으로 일치하는 포즈)
     var hasBody: Boolean = false
@@ -82,6 +89,21 @@ class BeautyLandmarks(
     var bodyTopY: Float = 0f
     var bodyBottomY: Float = 0f
 
+    // 다리 정보 (하체 및 다리 길이 연장용)
+    var hasLegs: Boolean = false
+    // Global pose anchors survive individual face selection and body fallbacks.
+    var legHipY: Float = 0f
+    var legLowerY: Float = 0f
+    fun legHip(): Float = if (legHipY > 0f) legHipY else
+        if (leftHip.y > 0 && rightHip.y > 0) (leftHip.y + rightHip.y) * 0.5f else max(leftHip.y, rightHip.y)
+    fun legLower(): Float = if (legLowerY > 0f) legLowerY else
+        max(leftAnkle.y, rightAnkle.y).let { if (it > 0) it else max(leftKnee.y, rightKnee.y) }
+
+    val leftKnee = Point()
+    val rightKnee = Point()
+    val leftAnkle = Point()
+    val rightAnkle = Point()
+
     /**
      * 이미지 단축 대비 현재 선택된 얼굴 크기 비율 (0.0 ~ 1.0)
      * 인물이 작을 때(원거리/전신) 왜곡 방지 가둠에 활용
@@ -93,8 +115,8 @@ class BeautyLandmarks(
             return max(faceBounds.width(), faceBounds.height()) / minDim
         }
 
-    /** 40x40 미리보기 메쉬에서 얼굴이 최소 세 칸 이상 차지해야 구조 보정을 허용한다. */
-    fun canAdjust(meshW: Int = 40, meshH: Int = 40): Boolean {
+    /** 실제 미리보기 메쉬에서 얼굴이 최소 세 칸 이상 차지해야 구조 보정을 허용한다. */
+    fun canAdjust(meshW: Int = BeautyFilterEngine.MESH_W, meshH: Int = BeautyFilterEngine.MESH_H): Boolean {
         if (!hasFace || imageWidth <= 0 || imageHeight <= 0) return false
         val minWidth = max(100f, imageWidth * 3f / meshW)
         val minHeight = max(100f, imageHeight * 3f / meshH)
@@ -102,7 +124,7 @@ class BeautyLandmarks(
     }
 
     /** 작은 얼굴이라도 실제로 일치한 포즈의 상체가 충분히 크면 체형 보정은 허용한다. */
-    fun canAdjustBody(meshW: Int = 40, meshH: Int = 40): Boolean {
+    fun canAdjustBody(meshW: Int = BeautyFilterEngine.MESH_W, meshH: Int = BeautyFilterEngine.MESH_H): Boolean {
         if (!hasBody || imageWidth <= 0 || imageHeight <= 0) return false
         // ML Kit의 SINGLE_IMAGE_MODE는 사진당 포즈 하나만 반환하므로,
         // 다중 인물에서는 다른 사람의 포즈가 선택된 얼굴에 붙을 수 있다.
@@ -112,6 +134,22 @@ class BeautyLandmarks(
         if (!hasReliablePose) return false
         return bodyBounds.width() >= imageWidth * 3f / meshW &&
             bodyBounds.height() >= imageHeight * 2f / meshH
+    }
+
+    fun hasSittingPersonNearLegs(): Boolean {
+        if (!hasLegs || imageHeight <= 0) return false
+        val bounds = safetyFaceBounds.ifEmpty { allFaces.map { it.bounds } }
+        return bounds.any { it.bottom >= legHip() - imageHeight * 0.0075f }
+    }
+
+    /** Only trusted, in-frame leg geometry may drive a global vertical warp. */
+    fun canAdjustLegs(meshW: Int = BeautyFilterEngine.MESH_W, meshH: Int = BeautyFilterEngine.MESH_H): Boolean {
+        if (!hasLegs || imageWidth <= 0 || imageHeight <= 0) return false
+        val hipY = legHip()
+        val lowerY = legLower()
+        if (!hipY.isFinite() || !lowerY.isFinite() || hipY <= 0f || lowerY >= imageHeight ||
+            lowerY - hipY < imageHeight * 0.15f) return false
+        return !hasSittingPersonNearLegs()
     }
 
     /**
@@ -128,6 +166,12 @@ class BeautyLandmarks(
         rightCheek.set(info.rightCheek.x, info.rightCheek.y)
         mouthPoint.set(info.mouthPoint.x, info.mouthPoint.y)
         noseBase.set(info.noseBase.x, info.noseBase.y)
+        upperLipPoints.clear()
+        info.upperLipPoints.forEach { upperLipPoints.add(Point(it.x, it.y)) }
+        lowerLipPoints.clear()
+        info.lowerLipPoints.forEach { lowerLipPoints.add(Point(it.x, it.y)) }
+        lipPoints.clear()
+        info.lipPoints.forEach { lipPoints.add(Point(it.x, it.y)) }
     }
 
     /** 실제 얼굴이 감지된 경우에만 누락된 신체 위치를 추정한다. */
@@ -175,6 +219,12 @@ class BeautyLandmarks(
         res.rightCheek.set(rightCheek.x * sx, rightCheek.y * sy)
         res.mouthPoint.set(mouthPoint.x * sx, mouthPoint.y * sy)
         res.noseBase.set(noseBase.x * sx, noseBase.y * sy)
+        res.upperLipPoints.clear()
+        this.upperLipPoints.forEach { res.upperLipPoints.add(Point(it.x * sx, it.y * sy)) }
+        res.lowerLipPoints.clear()
+        this.lowerLipPoints.forEach { res.lowerLipPoints.add(Point(it.x * sx, it.y * sy)) }
+        res.lipPoints.clear()
+        this.lipPoints.forEach { res.lipPoints.add(Point(it.x * sx, it.y * sy)) }
 
         res.hasBody = this.hasBody
         res.hasReliablePose = this.hasReliablePose
@@ -183,6 +233,14 @@ class BeautyLandmarks(
         res.rightShoulder.set(rightShoulder.x * sx, rightShoulder.y * sy)
         res.leftHip.set(leftHip.x * sx, leftHip.y * sy)
         res.rightHip.set(rightHip.x * sx, rightHip.y * sy)
+        res.legHipY = legHipY * sy
+        res.legLowerY = legLowerY * sy
+        safetyFaceBounds.forEach { res.safetyFaceBounds.add(Rect(it.left * sx, it.top * sy, it.right * sx, it.bottom * sy)) }
+        res.hasLegs = this.hasLegs
+        res.leftKnee.set(leftKnee.x * sx, leftKnee.y * sy)
+        res.rightKnee.set(rightKnee.x * sx, rightKnee.y * sy)
+        res.leftAnkle.set(leftAnkle.x * sx, leftAnkle.y * sy)
+        res.rightAnkle.set(rightAnkle.x * sx, rightAnkle.y * sy)
         res.bodyTopY = this.bodyTopY * sy
         res.bodyBottomY = this.bodyBottomY * sy
         res.bodyCenterY = this.bodyCenterY * sy
@@ -201,6 +259,9 @@ class BeautyLandmarks(
             copy.rightCheek.set(f.rightCheek.x * sx, f.rightCheek.y * sy)
             copy.mouthPoint.set(f.mouthPoint.x * sx, f.mouthPoint.y * sy)
             copy.noseBase.set(f.noseBase.x * sx, f.noseBase.y * sy)
+            f.upperLipPoints.forEach { copy.upperLipPoints.add(Point(it.x * sx, it.y * sy)) }
+            f.lowerLipPoints.forEach { copy.lowerLipPoints.add(Point(it.x * sx, it.y * sy)) }
+            f.lipPoints.forEach { copy.lipPoints.add(Point(it.x * sx, it.y * sy)) }
             res.allFaces.add(copy)
         }
 

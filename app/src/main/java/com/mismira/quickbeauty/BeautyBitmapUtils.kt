@@ -17,11 +17,13 @@ import java.util.Date
 import java.util.Locale
 
 object BeautyBitmapUtils {
+    const val PREVIEW_MAX_DIMENSION = 2000
     private const val TAG = "BeautyBitmapUtils"
     // 모바일 편집에서 충분한 품질을 유지하면서 200MP 원본의 메모리 폭발을 막는다.
     private const val MAX_EDIT_DIMENSION = 6000
 
     fun decodeSampledBitmapFromUri(context: Context, uri: Uri, maxDimension: Int): Bitmap? {
+        require(maxDimension > 0)
         return try {
             val resolver = context.contentResolver
 
@@ -37,7 +39,10 @@ object BeautyBitmapUtils {
             if (w <= 0 || h <= 0) return null
 
             var inSampleSize = 1
-            while (w / inSampleSize > maxDimension || h / inSampleSize > maxDimension) {
+            // Decode at or above the target, then resize exactly. Rounding down to
+            // 1000px for a 4000px photo made detectable faces fail editing limits.
+            while (if (maxDimension <= PREVIEW_MAX_DIMENSION) maxOf(w, h) / (inSampleSize * 2) >= maxDimension
+                else maxOf(w, h) / inSampleSize > maxDimension) {
                 inSampleSize *= 2
             }
 
@@ -49,8 +54,16 @@ object BeautyBitmapUtils {
                 BitmapFactory.decodeStream(input, null, options)
             } ?: return null
 
+            val longest = maxOf(bitmap.width, bitmap.height)
+            val sized = if (longest > maxDimension) {
+                val scale = maxDimension.toFloat() / longest
+                Bitmap.createScaledBitmap(bitmap, maxOf(1, (bitmap.width * scale).toInt()),
+                    maxOf(1, (bitmap.height * scale).toInt()), true).also {
+                    if (it !== bitmap) bitmap.recycle()
+                }
+            } else bitmap
             val orientation = getExifOrientation(context, uri)
-            applyExifOrientation(bitmap, orientation)
+            applyExifOrientation(sized, orientation)
         } catch (t: Throwable) {
             Log.e(TAG, "비트맵 로드 실패: ${t.message}", t)
             null

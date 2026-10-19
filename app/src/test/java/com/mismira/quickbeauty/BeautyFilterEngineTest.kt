@@ -4,6 +4,17 @@ import org.junit.Assert
 import org.junit.Test
 
 class BeautyFilterEngineTest {
+    @Test
+    fun testReportedFrontFacesFitPreviewMeshWithoutLoweringPixelMinimum() {
+        for ((width, height) in listOf(104f to 137f, 108f to 145f)) {
+            val lm = BeautyLandmarks(1126, 2000)
+            lm.hasFace = true
+            lm.faceBounds.set(300f, 650f, 300f + width, 650f + height)
+            Assert.assertFalse(lm.canAdjust(40, 40))
+            Assert.assertTrue(lm.canAdjust())
+            Assert.assertTrue(lm.scaleTo(2252, 4000).canAdjust())
+        }
+    }
 
     @Test
     fun testFaceSizeIncludesUpperHeadWithBalancedVerticalContraction() {
@@ -18,6 +29,49 @@ class BeautyFilterEngineTest {
         Assert.assertEquals(upperShift, lowerShift, 0.001f)
         Assert.assertEquals(0f, yAt(0), 0.001f)
         Assert.assertEquals(1000f, yAt(100), 0.001f)
+    }
+
+    @Test
+    fun testFaceSizeContractsCheekWidthMoreThanHeightToPreventPlumpDistortion() {
+        val lm = detectedFaceLandmarks(1000, 1000)
+        val vertices = BeautyFilterEngine.computeWarpedVertices(
+            1000, 1000, lm, BeautyAdjustParams(faceSize = 100), 100, 100)
+        fun xAt(col: Int, row: Int) = vertices[(row * 101 + col) * 2]
+        fun yAt(col: Int, row: Int) = vertices[(row * 101 + col) * 2 + 1]
+        val leftCheekShift = xAt(38, 35) - 380f
+        val rightCheekShift = 620f - xAt(62, 35)
+        Assert.assertTrue("Left cheek should shift inwards", leftCheekShift > 5f)
+        Assert.assertEquals(leftCheekShift, rightCheekShift, 0.001f)
+        val verticalShift = 490f - yAt(50, 49)
+        val horizontalShift = 670f - xAt(67, 32)
+        Assert.assertTrue("Horizontal contraction rate should be stronger than vertical",
+            horizontalShift > verticalShift)
+    }
+
+    @Test
+    fun testLegStretchLengthensLegsWithoutDistortingUpperBody() {
+        val lm = detectedFaceLandmarks(1000, 1000)
+        lm.hasBody = true
+        lm.hasLegs = true
+        lm.leftShoulder.set(400f, 400f)
+        lm.rightShoulder.set(600f, 400f)
+        lm.leftHip.set(430f, 600f)
+        lm.rightHip.set(570f, 600f)
+        lm.leftKnee.set(440f, 750f)
+        lm.rightKnee.set(560f, 750f)
+        lm.leftAnkle.set(450f, 900f)
+        lm.rightAnkle.set(550f, 900f)
+        Assert.assertTrue("Should be able to adjust legs", lm.canAdjustLegs())
+
+        val vertices = BeautyFilterEngine.computeWarpedVertices(
+            1000, 1000, lm, BeautyAdjustParams(legStretch = 100), 100, 100)
+        fun yAt(col: Int, row: Int) = vertices[(row * 101 + col) * 2 + 1]
+
+        // Upper body translates rigidly upward; feet and floor retain their shape.
+        Assert.assertEquals(50f, yAt(50, 40) - yAt(50, 35), 0.001f)
+        Assert.assertTrue(yAt(50, 35) < 350f)
+        Assert.assertEquals(900f, yAt(50, 90), 0.001f)
+        Assert.assertTrue(900f - yAt(50, 60) > 300f)
     }
 
     private fun detectedFaceLandmarks(w: Int, h: Int): BeautyLandmarks {
@@ -128,7 +182,9 @@ class BeautyFilterEngineTest {
         val params = BeautyAdjustParams(0, 100, 0, 0, 0, 0)
         val warped = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm, params)
         val original = BeautyFilterEngine.computeWarpedVertices(1000, 1000, lm, BeautyAdjustParams())
-        val siblingVertex = (19 * 41 + 29) * 2 // x=725, y=475: just below the sibling box
+        val column = (0.725f * BeautyFilterEngine.MESH_W).toInt()
+        val row = (0.475f * BeautyFilterEngine.MESH_H).toInt()
+        val siblingVertex = (row * (BeautyFilterEngine.MESH_W + 1) + column) * 2
         Assert.assertEquals(original[siblingVertex], warped[siblingVertex], 0.001f)
         Assert.assertEquals(original[siblingVertex + 1], warped[siblingVertex + 1], 0.001f)
     }
@@ -267,7 +323,7 @@ class BeautyFilterEngineTest {
         val zeroParams = BeautyAdjustParams(0, 0, 0, 0, 0)
 
         val verts = BeautyFilterEngine.computeWarpedVertices(w, h, lm, zeroParams)
-        val totalVerts = 41 * 41
+        val totalVerts = (BeautyFilterEngine.MESH_W + 1) * (BeautyFilterEngine.MESH_H + 1)
         Assert.assertEquals(totalVerts * 2, verts.size)
 
         Assert.assertEquals(0f, verts[0], 0.001f)
@@ -610,6 +666,236 @@ class BeautyFilterEngineTest {
 
         // 2. 인접 버텍스 간 변위 기울기가 0.6 이하로 완만하여 메쉬 찢어짐(Tearing) 및 텍스처 깨짐이 없어야 함
         Assert.assertTrue("Max displacement gradient ($maxDisplacementGradient) must be <= 0.6 to prevent tearing", maxDisplacementGradient <= 0.6f)
+    }
+
+    @Test
+    fun testHeadlessPoseEnablesLegStretchAndBodySlim() {
+        // 거울 셀카 등 얼굴이 폰으로 가려진 전신 사진
+        val lm = BeautyLandmarks(1000, 2000)
+        lm.hasFace = false
+        lm.hasBody = true
+        lm.hasReliablePose = true
+        lm.leftShoulder.set(380f, 600f)
+        lm.rightShoulder.set(620f, 600f)
+        lm.leftHip.set(400f, 1000f)
+        lm.rightHip.set(600f, 1000f)
+        lm.bodyBounds.set(350f, 600f, 650f, 1050f)
+        lm.hasLegs = true
+        lm.leftKnee.set(420f, 1400f)
+        lm.rightKnee.set(580f, 1400f)
+        lm.leftAnkle.set(430f, 1800f)
+        lm.rightAnkle.set(570f, 1800f)
+
+        Assert.assertFalse(lm.canAdjust())
+        Assert.assertTrue(lm.canAdjustBody())
+        Assert.assertTrue(lm.canAdjustLegs())
+
+        val legParams = BeautyAdjustParams(legStretch = 100)
+        Assert.assertTrue(BeautyFilterEngine.hasSupportedWarp(lm, legParams))
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, legParams)
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, BeautyAdjustParams())
+        Assert.assertTrue(warped.indices.step(2).any { kotlin.math.abs(warped[it + 1] - original[it + 1]) > 5f })
+    }
+
+    @Test
+    fun testLegStretchKeepsHorizontalLinesStraightWithoutBackgroundCurvature() {
+        val lm = BeautyLandmarks(1000, 2000)
+        lm.hasLegs = true
+        lm.leftHip.set(400f, 1000f)
+        lm.rightHip.set(600f, 1000f)
+        lm.leftAnkle.set(430f, 1800f)
+        lm.rightAnkle.set(570f, 1800f)
+
+        val params = BeautyAdjustParams(legStretch = 100)
+        val meshW = 40
+        val meshH = 40
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, params, meshW, meshH)
+
+        // 모든 가로 행(row)에서 Y 좌표가 X(열 col)에 관계없이 완전히 동일해야 함 (바닥 타일/배경 휨 방지)
+        for (r in 0..meshH) {
+            val firstColY = warped[(r * (meshW + 1) + 0) * 2 + 1]
+            for (c in 1..meshW) {
+                val colY = warped[(r * (meshW + 1) + c) * 2 + 1]
+                Assert.assertEquals("Row $r across columns must have flat Y to prevent curved background", firstColY, colY, 0.001f)
+            }
+        }
+    }
+
+    @Test
+    fun testMultiPersonStandingAllowsSharedLegStretch() {
+        val lm = BeautyLandmarks(1000, 2000)
+        lm.hasLegs = true
+        lm.leftHip.set(400f, 1000f)
+        lm.rightHip.set(600f, 1000f)
+        lm.leftAnkle.set(430f, 1800f)
+        lm.rightAnkle.set(570f, 1800f)
+
+        val f1 = BeautyLandmarks.FaceInfo(0)
+        f1.bounds.set(300f, 300f, 450f, 500f)
+        val f2 = BeautyLandmarks.FaceInfo(1)
+        f2.bounds.set(550f, 300f, 700f, 500f)
+        lm.allFaces.add(f1)
+        lm.allFaces.add(f2)
+
+        Assert.assertFalse(lm.hasSittingPersonNearLegs())
+        Assert.assertTrue(lm.canAdjustLegs())
+
+        val faceMap = mapOf(
+            0 to BeautyAdjustParams(faceSize = 50),
+            1 to BeautyAdjustParams(chinSlim = 50)
+        )
+        val params = BeautyAdjustParams(legStretch = 80)
+        val warped = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, params, faceParamsByIndex = faceMap)
+        val original = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, BeautyAdjustParams())
+
+        // 하체 영역에서 다리 연장 변위가 검출되어야 함
+        val ankleRow = (1800f / 2000f * BeautyFilterEngine.MESH_H).toInt()
+        val ankleY = warped[(ankleRow * (BeautyFilterEngine.MESH_W + 1) + 20) * 2 + 1]
+        val origAnkleY = original[(ankleRow * (BeautyFilterEngine.MESH_W + 1) + 20) * 2 + 1]
+        Assert.assertTrue("Shared leg stretch must preserve ankle position after top crop", kotlin.math.abs(ankleY - origAnkleY) < 0.001f)
+    }
+
+    @Test
+    fun testMultiPersonSittingSafelyLocksLegStretch() {
+        val lm = BeautyLandmarks(1000, 2000)
+        lm.hasLegs = true
+        lm.leftHip.set(400f, 1000f)
+        lm.rightHip.set(600f, 1000f)
+        lm.leftAnkle.set(430f, 1800f)
+        lm.rightAnkle.set(570f, 1800f)
+
+        val fStanding = BeautyLandmarks.FaceInfo(0)
+        fStanding.bounds.set(300f, 300f, 450f, 500f)
+        // 앉아있는 인물: 얼굴이 골반 높이(1000f) 부근에 위치함 (990f~1150f)
+        val fSitting = BeautyLandmarks.FaceInfo(1)
+        fSitting.bounds.set(600f, 990f, 750f, 1150f)
+        lm.allFaces.add(fStanding)
+        lm.allFaces.add(fSitting)
+
+        Assert.assertTrue(lm.hasSittingPersonNearLegs())
+        Assert.assertFalse("Leg stretch must safely lock when a sitting person's face is near hips/legs", lm.canAdjustLegs())
+    }
+
+    @Test fun legMeshNeverFoldsWhenAnklesAreAtBottom() {
+        for (height in listOf(800, 2000, 4000)) for (margin in listOf(1f, 10f, 100f)) {
+            val lm = BeautyLandmarks(1000, height).apply {
+                hasLegs = true
+                legHipY = height * 0.5f
+                legLowerY = height - margin
+            }
+            val verts = BeautyFilterEngine.computeWarpedVertices(1000, height, lm, BeautyAdjustParams(legStretch = 100))
+            var previous = Float.NEGATIVE_INFINITY
+            for (r in 0..BeautyFilterEngine.MESH_H) {
+                val y = verts[r * (BeautyFilterEngine.MESH_W + 1) * 2 + 1]
+                Assert.assertTrue("height=$height margin=$margin row=$r y=$y", y > previous && y <= height)
+                previous = y
+            }
+        }
+    }
+    @Test fun globalLegWarpDoesNotDependOnSelectedFaceOrBodyDefaults() {
+        val lm = BeautyLandmarks(1000, 2000).apply {
+            hasLegs = true; legHipY = 1000f; legLowerY = 1800f
+        }
+        val params = BeautyAdjustParams(legStretch = 100)
+        val before = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, params)
+        lm.hasFace = true
+        lm.faceBounds.set(200f, 200f, 500f, 600f)
+        lm.faceCenter.set(350f, 400f)
+        lm.setupDefaultsIfEmpty()
+        val after = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, params)
+        Assert.assertArrayEquals(before, after, 0.001f)
+    }
+    @Test fun smallUnselectableFaceStillProtectsLegAreaAtExportSize() {
+        val lm = BeautyLandmarks(1000, 2000).apply {
+            hasLegs = true; legHipY = 1000f; legLowerY = 1800f
+            safetyFaceBounds.add(BeautyLandmarks.Rect(10f, 990f, 40f, 1030f))
+        }
+        Assert.assertFalse(lm.canAdjustLegs())
+        Assert.assertFalse(lm.scaleTo(2000, 4000).canAdjustLegs())
+        lm.safetyFaceBounds[0].set(10f, 700f, 40f, 740f)
+        Assert.assertTrue(lm.canAdjustLegs())
+        Assert.assertTrue(lm.scaleTo(2000, 4000).canAdjustLegs())
+    }
+
+    @Test fun shoesAreRigidFromHigherAnkleAndHeadroomLimitsCrop() {
+        val lm = BeautyLandmarks(1000, 2000).apply {
+            hasLegs = true; legHipY = 1000f; legLowerY = 1850f
+            leftAnkle.set(400f, 1700f); rightAnkle.set(600f, 1850f)
+            safetyFaceBounds.add(BeautyLandmarks.Rect(300f, 150f, 450f, 310f))
+        }
+        val transform = BeautyFilterEngine.legTransform(lm, 100)
+        Assert.assertEquals(20f, transform.crop, 0.001f)
+        Assert.assertTrue(transform.end < 1700f)
+        val verts = BeautyFilterEngine.computeWarpedVertices(1000, 2000, lm, BeautyAdjustParams(legStretch = 100))
+        for (r in 0..60) for (c in 0..60) {
+            val y = r * 2000f / 60
+            if (y >= transform.end) Assert.assertEquals(y, verts[(r * 61 + c) * 2 + 1], 0.001f)
+        }
+        val scaled = BeautyFilterEngine.legTransform(lm.scaleTo(2000, 4000), 100)
+        Assert.assertEquals(transform.end * 2, scaled.end, 0.001f)
+        Assert.assertEquals(transform.crop * 2, scaled.crop, 0.001f)
+        lm.safetyFaceBounds[0].top = 50f
+        Assert.assertEquals(0f, BeautyFilterEngine.legTransform(lm, 100).crop, 0f)
+    }
+
+    @Test
+    fun testVitalityParamAndCoolToneBrightnessEnhancement() {
+        val params = BeautyAdjustParams()
+        Assert.assertTrue(params.isDefault())
+        Assert.assertFalse(params.hasAnyEffect())
+
+        params.vitality = 50
+        Assert.assertFalse(params.isDefault())
+        Assert.assertTrue(params.hasAnyEffect())
+
+        params.reset()
+        Assert.assertEquals(0, params.vitality)
+        Assert.assertTrue(params.isDefault())
+
+        // 쿨톤 밝기(톤업) 강화 검증: coolTone 100일 때 밝기 오프셋이 기존(20f)보다 높은 32f 기반으로 화사해짐
+        val matrix = BeautyFilterEngine.getCoolToneMatrixArray(100)
+        // Red offset at index 4: 32f * 0.90f = 28.8f
+        Assert.assertTrue("CoolTone brightness should be enhanced for tone up", matrix[4] > 20f)
+    }
+
+    @Test
+    fun testLipPointsScalingInBeautyLandmarks() {
+        val lm = BeautyLandmarks(100, 100)
+        lm.lipPoints.add(BeautyLandmarks.Point(10f, 20f))
+        lm.lipPoints.add(BeautyLandmarks.Point(30f, 40f))
+
+        val scaled = lm.scaleTo(200, 200)
+        Assert.assertEquals(2, scaled.lipPoints.size)
+        Assert.assertEquals(20f, scaled.lipPoints[0].x, 0.001f)
+        Assert.assertEquals(40f, scaled.lipPoints[0].y, 0.001f)
+        Assert.assertEquals(60f, scaled.lipPoints[1].x, 0.001f)
+        Assert.assertEquals(80f, scaled.lipPoints[1].y, 0.001f)
+    }
+
+    @Test
+    fun testWarpPointBilinearInterpolation() {
+        val meshW = 2
+        val meshH = 2
+        val width = 100f
+        val height = 100f
+
+        // 3x3 꼭짓점 그리드 (meshW=2, meshH=2)
+        // 꼭짓점들이 x축으로 +10, y축으로 +20씩 이동한 변형 메쉬 가정
+        val verts = FloatArray((meshW + 1) * (meshH + 1) * 2)
+        var i = 0
+        for (r in 0..meshH) {
+            for (c in 0..meshW) {
+                val origX = c * width / meshW
+                val origY = r * height / meshH
+                verts[i++] = origX + 10f
+                verts[i++] = origY + 20f
+            }
+        }
+
+        // 중앙 지점 (50, 50)을 보간하면 정확히 (60, 70)으로 워프되어야 함
+        val warped = BeautyFilterEngine.warpPoint(50f, 50f, verts, meshW, meshH, width, height)
+        Assert.assertEquals(60f, warped.x, 0.001f)
+        Assert.assertEquals(70f, warped.y, 0.001f)
     }
 }
 

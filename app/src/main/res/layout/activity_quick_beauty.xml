@@ -80,7 +80,7 @@
                     android:paddingHorizontal="8dp"
                     android:text="@string/privacy_policy_link"
                     android:textColor="#A1A1AA"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:clickable="true"
                     android:focusable="true" />
 
@@ -136,7 +136,7 @@
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="12dp"
             android:background="@drawable/bg_frosted_badge"
-            android:paddingHorizontal="14dp"
+            android:paddingHorizontal="6dp"
             android:paddingVertical="6dp"
             android:text="@string/badge_original"
             android:textColor="#E4E4E7"
@@ -150,8 +150,10 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:layout_marginBottom="20dp"
+            android:layout_marginHorizontal="16dp"
+            android:gravity="center"
             android:background="@drawable/bg_frosted_badge"
-            android:paddingHorizontal="14dp"
+            android:paddingHorizontal="6dp"
             android:paddingVertical="7dp"
             android:text="@string/coach_mark_hold_to_compare"
             android:textColor="#A1A1AA"
@@ -178,78 +180,130 @@
         android:orientation="vertical"
         android:paddingTop="12dp"
         android:paddingBottom="16dp"
-        android:paddingHorizontal="14dp">
+        android:paddingHorizontal="6dp">
 
-        <!-- 1단: 6개 원형 아이콘 탭 (쿨톤, 작은얼굴, 턱선, 얼굴길이, 어깨, 몸매) -->
-        <LinearLayout
+        <!-- 1단: 원형 아이콘 탭 (쿨톤, 생기, 작은얼굴, 턱선, 얼굴길이, 어깨, 몸매, 다리길이) -->
+        <HorizontalScrollView
+            android:id="@+id/tabScrollView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:fillViewport="true">
 
-            <!-- 1. 쿨톤 -->
             <LinearLayout
-                android:id="@+id/tabCoolTone"
-                android:layout_width="0dp"
+                android:id="@+id/tabLayout"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless">
+                android:orientation="horizontal">
 
-                <FrameLayout
-                    android:id="@+id/iconBgCoolTone"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
-                    android:background="@drawable/bg_tab_circle_selected">
-
-                    <ImageView
-                        android:id="@+id/iconCoolTone"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_tab_cool_tone"
-                        android:contentDescription="@string/tab_tone" />
-                </FrameLayout>
-
-                <TextView
-                    android:id="@+id/txtTabCoolTone"
-                    android:layout_width="wrap_content"
+                <!-- 1. 쿨톤 -->
+                <LinearLayout
+                    android:id="@+id/tabCoolTone"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_weight="1"
+                    android:minWidth="44dp"
                     android:gravity="center"
-                    android:text="@string/tab_tone"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:textColor="#FFFFFF"
-                    android:singleLine="true"
-                    android:includeFontPadding="false" />
-            </LinearLayout>
+                    android:orientation="vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackgroundBorderless">
 
-            <!-- 2. 작은얼굴 -->
-            <LinearLayout
-                android:id="@+id/tabFaceSize"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless">
+                    <FrameLayout
+                        android:id="@+id/iconBgCoolTone"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_tab_circle_selected">
+
+                        <ImageView
+                            android:id="@+id/iconCoolTone"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_tab_cool_tone"
+                            android:contentDescription="@string/tab_tone" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/txtTabCoolTone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:text="@string/tab_tone"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:singleLine="true"
+                        android:includeFontPadding="false" />
+                </LinearLayout>
+
+                <!-- 2. 생기 -->
+                <LinearLayout
+                    android:id="@+id/tabVitality"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minWidth="44dp"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackgroundBorderless">
+
+                    <FrameLayout
+                        android:id="@+id/iconBgVitality"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_tab_circle_unselected">
+
+                        <ImageView
+                            android:id="@+id/iconVitality"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_tab_vitality"
+                            android:contentDescription="@string/tab_vitality" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/txtTabVitality"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:text="@string/tab_vitality"
+                        android:textSize="10sp"
+                        android:textColor="#71717A"
+                        android:singleLine="true"
+                        android:includeFontPadding="false" />
+                </LinearLayout>
+
+                <!-- 3. 작은얼굴 -->
+                <LinearLayout
+                    android:id="@+id/tabFaceSize"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minWidth="44dp"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackgroundBorderless">
 
                 <FrameLayout
                     android:id="@+id/iconBgFaceSize"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
                     android:background="@drawable/bg_tab_circle_unselected">
 
                     <ImageView
                         android:id="@+id/iconFaceSize"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_face_size"
                         android:contentDescription="@string/tab_face_size" />
@@ -262,18 +316,19 @@
                     android:layout_marginTop="4dp"
                     android:gravity="center"
                     android:text="@string/tab_face_size"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
                     android:includeFontPadding="false" />
             </LinearLayout>
 
-            <!-- 3. 턱선 -->
+            <!-- 4. 턱선 -->
             <LinearLayout
                 android:id="@+id/tabChinSlim"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minWidth="44dp"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:clickable="true"
@@ -282,14 +337,14 @@
 
                 <FrameLayout
                     android:id="@+id/iconBgChinSlim"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
                     android:background="@drawable/bg_tab_circle_unselected">
 
                     <ImageView
                         android:id="@+id/iconChinSlim"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_chin_slim"
                         android:contentDescription="@string/tab_chin_slim" />
@@ -302,18 +357,19 @@
                     android:layout_marginTop="4dp"
                     android:gravity="center"
                     android:text="@string/tab_chin_slim"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
                     android:includeFontPadding="false" />
             </LinearLayout>
 
-            <!-- 4. 얼굴길이 -->
+            <!-- 5. 얼굴길이 -->
             <LinearLayout
                 android:id="@+id/tabFaceLength"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minWidth="44dp"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:clickable="true"
@@ -322,14 +378,14 @@
 
                 <FrameLayout
                     android:id="@+id/iconBgFaceLength"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
                     android:background="@drawable/bg_tab_circle_unselected">
 
                     <ImageView
                         android:id="@+id/iconFaceLength"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_face_length"
                         android:contentDescription="@string/tab_face_length" />
@@ -342,18 +398,19 @@
                     android:layout_marginTop="4dp"
                     android:gravity="center"
                     android:text="@string/tab_face_length"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
                     android:includeFontPadding="false" />
             </LinearLayout>
 
-            <!-- 5. 어깨 -->
+            <!-- 6. 어깨 -->
             <LinearLayout
                 android:id="@+id/tabShoulder"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minWidth="44dp"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:clickable="true"
@@ -362,14 +419,14 @@
 
                 <FrameLayout
                     android:id="@+id/iconBgShoulder"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
                     android:background="@drawable/bg_tab_circle_unselected">
 
                     <ImageView
                         android:id="@+id/iconShoulder"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_shoulder"
                         android:contentDescription="@string/tab_shoulder" />
@@ -382,18 +439,19 @@
                     android:layout_marginTop="4dp"
                     android:gravity="center"
                     android:text="@string/tab_shoulder"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
                     android:includeFontPadding="false" />
             </LinearLayout>
 
-            <!-- 6. 몸매 -->
+            <!-- 7. 몸매 -->
             <LinearLayout
                 android:id="@+id/tabBodySlim"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minWidth="44dp"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:clickable="true"
@@ -402,14 +460,14 @@
 
                 <FrameLayout
                     android:id="@+id/iconBgBodySlim"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
                     android:background="@drawable/bg_tab_circle_unselected">
 
                     <ImageView
                         android:id="@+id/iconBodySlim"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_tab_body_slim"
                         android:contentDescription="@string/tab_body_slim" />
@@ -422,12 +480,54 @@
                     android:layout_marginTop="4dp"
                     android:gravity="center"
                     android:text="@string/tab_body_slim"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:textColor="#71717A"
+                    android:singleLine="true"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- 8. 다리길이 -->
+            <LinearLayout
+                android:id="@+id/tabLegStretch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minWidth="44dp"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless">
+
+                <FrameLayout
+                    android:id="@+id/iconBgLegStretch"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/bg_tab_circle_unselected">
+
+                    <ImageView
+                        android:id="@+id/iconLegStretch"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tab_leg_stretch"
+                        android:contentDescription="@string/tab_legs" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/txtTabLegStretch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="@string/tab_legs"
+                    android:textSize="10sp"
                     android:textColor="#71717A"
                     android:singleLine="true"
                     android:includeFontPadding="false" />
             </LinearLayout>
         </LinearLayout>
+        </HorizontalScrollView>
 
         <!-- 2단: 슬라이더 + 우측 작은 숫자 (나란히 배치) -->
         <LinearLayout

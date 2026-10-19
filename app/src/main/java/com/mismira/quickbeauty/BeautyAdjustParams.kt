@@ -9,7 +9,9 @@ data class BeautyAdjustParams(
     var chinSlim: Int = 0,     // 3. 턱선 V라인 슬림
     var faceLength: Int = 0,   // 4. 얼굴 세로 길이 축소 (얼굴 짧게 / 하관 리프팅)
     var shoulder: Int = 0,     // 5. 어깨 넓히기 (직각 어깨)
-    var bodySlim: Int = 0      // 6. 몸매 슬림
+    var bodySlim: Int = 0,     // 6. 몸매 슬림
+    var legStretch: Int = 0,   // 7. 다리 길이 연장
+    var vitality: Int = 0      // 8. 생기 (립스틱 틴트 + 볼터치)
 ) {
     // 이전 버전 및 호환성을 위한 faceSlim alias
     var faceSlim: Int
@@ -25,9 +27,12 @@ data class BeautyAdjustParams(
         faceLength = faceLength.coerceIn(0, 100)
         shoulder = shoulder.coerceIn(0, 100)
         bodySlim = bodySlim.coerceIn(0, 100)
+        legStretch = legStretch.coerceIn(0, 100)
+        vitality = vitality.coerceIn(0, 100)
     }
 
-    fun isDefault(): Boolean = coolTone == 0 && faceSize == 0 && chinSlim == 0 && faceLength == 0 && shoulder == 0 && bodySlim == 0
+    fun isDefault(): Boolean = coolTone == 0 && faceSize == 0 && chinSlim == 0 &&
+        faceLength == 0 && shoulder == 0 && bodySlim == 0 && legStretch == 0 && vitality == 0
 
     fun hasAnyEffect(): Boolean = !isDefault()
 
@@ -38,25 +43,28 @@ data class BeautyAdjustParams(
         faceLength = 0
         shoulder = 0
         bodySlim = 0
+        legStretch = 0
+        vitality = 0
     }
 
-    fun set(c: Int, fs: Int, cs: Int, fl: Int, sh: Int, b: Int) {
+    fun set(c: Int, fs: Int, cs: Int, fl: Int, sh: Int, b: Int, leg: Int = 0, v: Int = 0) {
         coolTone = c.coerceIn(0, 100)
         faceSize = fs.coerceIn(0, 100)
         chinSlim = cs.coerceIn(0, 100)
         faceLength = fl.coerceIn(0, 100)
         shoulder = sh.coerceIn(0, 100)
         bodySlim = b.coerceIn(0, 100)
+        legStretch = leg.coerceIn(0, 100)
+        vitality = v.coerceIn(0, 100)
     }
 
     // 5개 인자 호환용 오버로드
     fun set(c: Int, fs: Int, cs: Int, fl: Int, b: Int) {
-        set(c, fs, cs, fl, 0, b)
+        set(c, fs, cs, fl, 0, b, 0, 0)
     }
 
     // 4개 인자 호환용 오버로드
     fun set(c: Int, fs: Int, fl: Int, b: Int) {
-        set(c, fs, 0, fl, 0, b)
+        set(c, fs, 0, fl, 0, b, 0, 0)
     }
 }
-

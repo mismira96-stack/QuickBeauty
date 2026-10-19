@@ -98,9 +98,12 @@ class FaceBodyDetector {
 
                     // 1. 다중 얼굴 분석 및 스마트 스코어링
                     try {
-                        val faces = if (faceTask.isSuccessful) {
-                            faceTask.result.orEmpty().filter { isSelectableFace(it, w, h) }
-                        } else emptyList()
+                        val rawFaces = if (faceTask.isSuccessful) faceTask.result.orEmpty() else emptyList()
+                        rawFaces.forEach { face ->
+                            val b = face.boundingBox
+                            landmarks.safetyFaceBounds.add(BeautyLandmarks.Rect(b.left.toFloat(), b.top.toFloat(), b.right.toFloat(), b.bottom.toFloat()))
+                        }
+                        val faces = rawFaces.filter { isSelectableFace(it, w, h) }
                         if (faces.isNotEmpty()) {
                             val centerX = w * 0.5f
                             val centerY = h * 0.40f
@@ -127,13 +130,13 @@ class FaceBodyDetector {
                             }
 
                             // 점수 높은 순으로 정렬하여 0순위 기본 메인 인물 선정
-                            faceInfoList.sortByDescending { it.score }
-                            faceInfoList.forEachIndexed { i, info -> info.index = i }
+                            val uniqueFaces = FaceSelection.removeDuplicates(faceInfoList).sortedByDescending { it.score }
+                            uniqueFaces.forEachIndexed { i, info -> info.index = i }
 
                             landmarks.allFaces.clear()
-                            landmarks.allFaces.addAll(faceInfoList)
+                            landmarks.allFaces.addAll(uniqueFaces)
                             landmarks.selectedFaceIndex = 0
-                            landmarks.applyFaceInfo(faceInfoList[0])
+                            landmarks.applyFaceInfo(uniqueFaces[0])
                         }
                     } catch (e: Throwable) {
                         Log.w(TAG, "얼굴 분석 중 예외: ${e.message}")
@@ -144,6 +147,7 @@ class FaceBodyDetector {
                     // 2. 포즈 분석 파싱 (키메라 방지: 선택된 얼굴과 일치하는 경우에만 바인딩)
                     try {
                         if (poseResult != null) {
+                            parseLegs(poseResult, landmarks, w, h)
                             if (landmarks.hasFace) parsePoseIfMatched(poseResult, landmarks, w, h)
                             else parsePoseWithoutFace(poseResult, landmarks, w, h)
                         }
@@ -235,6 +239,20 @@ class FaceBodyDetector {
 
         val noseBase = face.getLandmark(FaceLandmark.NOSE_BASE)
         info.noseBase.set(noseBase?.position?.x ?: box.exactCenterX(), noseBase?.position?.y ?: (box.top + box.height() * 0.55f))
+
+        val upperLipTop = contourFace?.getContour(FaceContour.UPPER_LIP_TOP)?.points
+        val upperLipBottom = contourFace?.getContour(FaceContour.UPPER_LIP_BOTTOM)?.points
+        val lowerLipTop = contourFace?.getContour(FaceContour.LOWER_LIP_TOP)?.points
+        val lowerLipBottom = contourFace?.getContour(FaceContour.LOWER_LIP_BOTTOM)?.points
+
+        if (!upperLipTop.isNullOrEmpty() && !upperLipBottom.isNullOrEmpty()) {
+            for (pt in upperLipTop) info.upperLipPoints.add(BeautyLandmarks.Point(pt.x, pt.y))
+            for (i in upperLipBottom.indices.reversed()) info.upperLipPoints.add(BeautyLandmarks.Point(upperLipBottom[i].x, upperLipBottom[i].y))
+        }
+        if (!lowerLipTop.isNullOrEmpty() && !lowerLipBottom.isNullOrEmpty()) {
+            for (pt in lowerLipTop) info.lowerLipPoints.add(BeautyLandmarks.Point(pt.x, pt.y))
+            for (i in lowerLipBottom.indices.reversed()) info.lowerLipPoints.add(BeautyLandmarks.Point(lowerLipBottom[i].x, lowerLipBottom[i].y))
+        }
         return info
     }
 
@@ -244,7 +262,8 @@ class FaceBodyDetector {
         val rightShoulder = pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER) ?: return
         val leftHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP) ?: return
         val rightHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP) ?: return
-        if (listOf(leftShoulder, rightShoulder, leftHip, rightHip).any { it.inFrameLikelihood < 0.9f }) return
+        val avgLikelihood = (leftShoulder.inFrameLikelihood + rightShoulder.inFrameLikelihood + leftHip.inFrameLikelihood + rightHip.inFrameLikelihood) / 4f
+        if (avgLikelihood < 0.35f || listOf(leftShoulder, rightShoulder, leftHip, rightHip).any { it.inFrameLikelihood < 0.20f }) return
 
         val span = kotlin.math.abs(rightShoulder.position.x - leftShoulder.position.x)
         val shoulderX = (leftShoulder.position.x + rightShoulder.position.x) * 0.5f
@@ -273,6 +292,8 @@ class FaceBodyDetector {
             landmarks.bodyTopY,
             max(leftShoulder.position.x, rightShoulder.position.x) + span * 0.10f,
             landmarks.bodyBottomY)
+
+
     }
 
     private fun parsePoseIfMatched(pose: Pose, landmarks: BeautyLandmarks, width: Int, height: Int) {
@@ -330,6 +351,33 @@ class FaceBodyDetector {
         val minX = min(landmarks.leftShoulder.x, landmarks.rightShoulder.x)
         val maxX = max(landmarks.leftShoulder.x, landmarks.rightShoulder.x)
         landmarks.bodyBounds.set(minX - fw * 0.2f, landmarks.bodyTopY, maxX + fw * 0.2f, landmarks.bodyBottomY)
+
+        // 다리 랜드마크 (무릎, 발목) 파싱
+
+    }
+
+    private fun parseLegs(pose: Pose, landmarks: BeautyLandmarks, width: Int, height: Int) {
+        fun trusted(type: Int): PoseLandmark? = pose.getPoseLandmark(type)?.takeIf {
+            it.inFrameLikelihood >= 0.5f && it.position.x.isFinite() && it.position.y.isFinite() &&
+                it.position.x in 0f..width.toFloat() && it.position.y > 0f && it.position.y < height
+        }
+        val lh = trusted(PoseLandmark.LEFT_HIP) ?: return
+        val rh = trusted(PoseLandmark.RIGHT_HIP) ?: return
+        val hipY = (lh.position.y + rh.position.y) * 0.5f
+        val lk = trusted(PoseLandmark.LEFT_KNEE)?.takeIf { it.position.y > hipY }
+        val rk = trusted(PoseLandmark.RIGHT_KNEE)?.takeIf { it.position.y > hipY }
+        val la = trusted(PoseLandmark.LEFT_ANKLE)?.takeIf { lk != null && it.position.y > lk.position.y }
+        val ra = trusted(PoseLandmark.RIGHT_ANKLE)?.takeIf { rk != null && it.position.y > rk.position.y }
+        val lowerY = listOfNotNull(la, ra).maxOfOrNull { it.position.y }
+            ?: listOfNotNull(lk, rk).maxOfOrNull { it.position.y } ?: return
+        if (lowerY - hipY < height * 0.15f) return
+        landmarks.legHipY = hipY
+        landmarks.legLowerY = lowerY
+        landmarks.hasLegs = true
+        lk?.let { landmarks.leftKnee.set(it.position.x, it.position.y) }
+        rk?.let { landmarks.rightKnee.set(it.position.x, it.position.y) }
+        la?.let { landmarks.leftAnkle.set(it.position.x, it.position.y) }
+        ra?.let { landmarks.rightAnkle.set(it.position.x, it.position.y) }
     }
 
     fun release() {

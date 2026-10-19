@@ -1,4 +1,62 @@
+## 2026-10-20 QuickBeauty 1.1.4 (17) 출시 준비
+
+- Google Play API 조회에서 기존 프로덕션 1.1.3(16)은 completed 상태로 확인. 16번은 신발 보호 수정본이며 이번 생기 수정본과 다르다.
+- 새 versionCode 17 / versionName 1.1.4로 구분. testReleaseUnitTest(44건), assembleRelease, bundleRelease 통과. APK 서명 및 ZIP 16KB 정렬 검사 통과.
+- 서명 APK/AAB, 한글·영문 출시 노트와 메타데이터: C:/work/releases/QuickBeauty/1.1.4.
+- AAB SHA256: a033d5b7bab9d5b8746a6d13db23e1210e819e8e11e3b88d5c2f604520584415.
+- 최종 심사 제출은 사용자 수동 진행. 기존 배포 국가·정책 선언·스토어 이미지 변경 없음.
+
+## 2026-10-19 Codex 최종 보완 — 아래 이전 Gemini 요약보다 우선
+
+- 생기는 원본 좌표에서 얼굴별 작은 투명 레이어로 렌더링한 뒤, 사진과 동일한 메쉬 셀로 변형한다 (`VitalityRenderer`). 볼 중심뿐 아니라 그라데이션/클리핑/입술 모양도 함께 움직인다. 미리보기는 레이어를 캐싱하며 고해상도 저장에서 전체 사진 크기의 추가 메이크업 비트맵을 만들지 않는다.
+- 로즈 핑크 복구: 볼 #E0829D / 최대 alpha 65, 립 #C95E7E / 보조 #B95070. 쿨톤 밝기(32 기반 오프셋)는 유지했다.
+- 립 윤곽 누락 시 추정 타원 없음. 유효한 입술 다각형 안으로 블러를 제한한다. 볼은 보수적인 얼굴 타원/하안부 창을 사용하며 다른 검출 얼굴을 제외한다. 피부 의미 분할 모델은 아니다.
+- 저장 및 초기화는 모든 얼굴의 보정 상태를 반영한다. 얼굴 전환 직후 초기화 상태도 갱신한다. 저장 중 버튼 재활성화를 막는다.
+- 얼굴 크기 20% 일괄 필터 제거. 중심과 영역이 거의 겹치는 중복 검출을 정리하고, 터치 시 다른 얼굴의 확장 영역보다 실제 얼굴 사각형을 우선한다. 작은 정상 원거리 인물은 상대 면적만으로 버리지 않는다.
+- 선택 링/터치 영역은 현재 보정 좌표에 맞추며, 기존 링 애니메이션을 취소한 후 하나만 실행한다. 사진 전환/뷰 분리 시 캐시와 애니메이션 정리.
+- debug는 다시 com.quickbeauty.app.debug로 분리. 정식 패키지 서명 불일치로 첫 설치 실패 후 사용자가 기존 앱을 삭제했고, 서명된 수정 release APK를 com.quickbeauty.app으로 설치/실행했다. 사용자: '잘되는거같아'. 특정 사진의 역사적 검출 원인까지 확정한 것은 아니다.
+- JVM 44건 통과(엔진37 / 뷰포트3 / 선택4), release APK·debug APK·instrumentation APK 빌드 통과.
+- API36 에뮬레이터의 실제 Android Canvas 픽셀 검증 통과: 생기+형태 보정 0/50/100, 미리보기/저장 동일, 원본 비교, 치아 틈/입술 아래 피부, 옆 얼굴 보호, 윤곽 누락, 고해상도 좌표 스케일링. 독립적인 전체 합성-워프 기준과 색상 평균 오차는 0.12/255 미만이었다.
+- 실제 Activity에서 작은 얼굴 B가 0이고 A에 생기가 남아 있을 때 저장·초기화 활성화, 전체 초기화 후 map 비움/버튼 숨김 검증 통과. 테스트는 합성 시료와 앱 내부 캐시만 사용했으며 갤러리에 캡처나 사진을 추가하지 않았다.
+- 버전은 1.1.3(16) 테스트 상태 유지. 기존 업로드 AAB는 이번 수정본이 아니다. 이번 턴에서 AAB 재생성/Play 업로드/심사 제출은 하지 않았다.
+
 # QuickBeauty (간편 뷰티 ✨) 개발 완료 리포트 & 워크로그 (Worklog)
+
+# QuickBeauty (간편 뷰티 ✨) 개발 완료 리포트 & 워크로그 (Worklog)
+
+## 🤖 [CODEX 리뷰 & 인수인계 가이드] 2026-10-19 세션 정리
+
+> **작업 브랜치**: `codex/16kb-release`
+> **패키지명**: `com.quickbeauty.app` (디버그/릴리즈 단일 패키지 통일 — 이전 기록, 위 최신 보완 참조)
+> **검증 상태**: 당시 Gemini 기록 42건 (`./gradlew testDebugUnitTest`), 최신 재검증은 위 참조
+> **기기 배포**: `SM-F971N` 실기기에 최신 단일 빌드 설치 완료 (`./gradlew installDebug`)
+
+### 📌 7대 우선순위 리뷰 과제 구현 완료 내역
+1. **[P1] 생기 위치 동기화 (`BeautyFilterEngine.kt`, `BeautyPreviewView.kt`)**:
+   - `BeautyFilterEngine.warpPoint(origX, origY, verts, meshW, meshH, w, h)`: 메쉬 버텍스 이중선형 보간(Bilinear Interpolation) 알고리즘 구현.
+   - 다리길이 연장(`legStretch`), 얼굴축소(`faceSize`), 턱선(`chinSlim`), 얼굴길이(`faceLength`) 워프 시 메쉬 변위에 맞춰 볼터치와 립스틱 좌표가 100% 동기화되도록 연동 (`BeautyPreviewView` 및 `process` 저장 파이프라인 동일 적용).
+2. **[P2] 립 오착색 방지 (`BeautyFilterEngine.kt`)**:
+   - 윤곽선 미검출 시 `mouthPoint` 기준 타원으로 임의 추정하던 fallback 코드 완전 삭제.
+   - 4점 이상의 유효한 윗/아랫입술 실제 윤곽선(`upperLipPoints`, `lowerLipPoints`)이 있을 때만 정밀 렌더링하여 치아나 턱 살 침범 원천 차단.
+3. **[P2] 얼굴별 저장/초기화 상태 일치 (`MainActivity.kt`)**:
+   - `updateResetButton`: 현재 얼굴(`params`)뿐 아니라 `faceParamsByIndex`에 남아있는 다른 얼굴들의 보정값까지 합산 평가하여 [초기화] 버튼 표시 상태 유지.
+4. **[P2] 이중 포커스 링 / 원 크기 변동 원인 규명 및 해결**:
+   - **원인 1**: `build.gradle`의 `applicationIdSuffix ".debug"`로 인해 폰에 구버전 정식 앱과 신버전 개발 앱 2개가 공존하여 구버전 화면을 보며 테스트하던 혼선 -> `.debug` 접미사 제거 및 단일 `com.quickbeauty.app`으로 통합/재설치 완료.
+   - **원인 2**: 다중 인물 사진에서 배경/옷깃의 미세 노이즈 얼굴(idx=5 등) 오검출로 재클릭 시 작은 원이 뜨던 현상 -> `FaceBodyDetector.kt`의 `isSelectableFace`에서 메인 얼굴 대비 면적 20% 미만 노이즈 얼굴 필터링 적용.
+   - 포커스 링을 얼굴 전체 윤곽과 헤어스타일까지 안정적으로 감싸는 `0.72f` 단일 선택 링으로 통일 (`unselectedIndicatorPaint` 제거).
+5. **[P2] 볼터치 영역 보호 (`BeautyFilterEngine.kt`)**:
+   - 앞볼 애플존 중심 그라데이션 시 눈 위(눈두덩/이마) 및 턱선 아래(목/옷깃)로 번지지 않도록 캔버스 안전 사각 영역 클리핑(`clipRect`) 적용.
+6. **[P2] 렌더링 검증 & 단위 테스트 (`BeautyFilterEngineTest.kt`)**:
+   - `testWarpPointBilinearInterpolation` 단위 테스트 추가 및 전체 42건 단위 테스트 통과.
+7. **[P3] 릴리즈 디버그 로그 정리**:
+   - 프로덕션 코드 내 임시 진단 로그(`QB_DEBUG`) 완전 제거.
+
+### 🔍 CODEX 내일 검증 체크포인트
+1. `git diff`를 통해 `BeautyFilterEngine.kt`, `BeautyPreviewView.kt`, `FaceBodyDetector.kt`, `MainActivity.kt`의 변경 내역 확인.
+2. 실기기(`SM-F971N`)에서 `QuickBeauty` 단일 앱 실행 후 2인 사진에서:
+   - 왼쪽/오른쪽 얼굴 탭 시 단일 블루 링이 시원하게 뜨고 오클릭(노이즈 얼굴 튐)이 없는지 확인.
+   - [생기] 슬라이더 조절 후 [다리길이], [얼굴크기], [턱선] 조절 시 볼터치/립 위치가 함께 움직이는지 확인.
+   - 사진 저장 후 갤러리 결과물과 미리보기가 100% 일치하는지 확인.
 
 ## v1.1.0 다중 얼굴 보정 유지
 
@@ -284,3 +342,12 @@ app/src/main/java/com/mismira/quickbeauty/
 - Play Console confirms production 1.1.2 is under review (full rollout); managed publishing disabled, so approval publishes automatically. No blocking errors; optional mapping/native-symbol warnings only.
 - Code and release preparation pushed to origin/codex/16kb-release.
 
+
+
+## 2026-10-18 — 1.1.3 production draft uploaded
+
+- Uploaded latest shoe-protection AAB, versionCode 16 / versionName 1.1.3.
+- Production track re-read confirms 16 is draft; existing 15 remains completed.
+- Google rejected changesNotSentForReview=true for this app; committed the draft without that unsupported parameter. No review submission or rollout was requested.
+- SHA256: 4d7e14f5c16cadddc1165eed0fc39f0cd8b127d3e64b59052f8d186767809d68
+- Korean and English release notes included. User will test and submit manually tomorrow.
