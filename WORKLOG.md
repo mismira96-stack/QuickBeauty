@@ -5,6 +5,9 @@
 - 서명 APK/AAB, 한글·영문 출시 노트와 메타데이터: C:/work/releases/QuickBeauty/1.1.4.
 - AAB SHA256: a033d5b7bab9d5b8746a6d13db23e1210e819e8e11e3b88d5c2f604520584415.
 - 최종 심사 제출은 사용자 수동 진행. 기존 배포 국가·정책 선언·스토어 이미지 변경 없음.
+- API 업로드/검증/커밋 완료 후 별도 edit으로 재조회: production 17=draft, 기존 16=completed 유지. 한글·영문 노트 및 서버 AAB SHA256 일치 확인.
+- changesNotSentForReview 플래그는 이 앱에서 거부되어 draft 트랙 변경만 플래그 없이 커밋했다. 심사 제출/배포는 실행하지 않았다. 결과: C:/work/outputs/quickbeauty-20261020/play-draft-result.json.
+- 출시 소스 스냅샷 ec67e4a를 origin/codex/16kb-release에 푸시했다.
 
 ## 2026-10-19 Codex 최종 보완 — 아래 이전 Gemini 요약보다 우선
 
