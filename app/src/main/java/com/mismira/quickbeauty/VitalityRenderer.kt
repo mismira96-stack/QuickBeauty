@@ -16,9 +16,10 @@ import kotlin.math.max
 /** Makeup is painted in source space, then uses exactly the photo's mesh cells.
  * Cropped, grid-aligned layers avoid allocating another full-resolution photo. */
 internal object VitalityRenderer {
-    const val MAX_CHEEK_ALPHA = 65
+    const val MAX_CHEEK_ALPHA = 85
+    const val MAX_LIP_ALPHA = 75
     const val CHEEK_RGB = 0xE0829D
-    const val LIP_RGB = 0xC95E7E
+    const val LIP_RGB = 0xD94A78
 
     class Layer(val bitmap: Bitmap, val firstCol: Int, val firstRow: Int,
                 val cols: Int, val rows: Int, val meshW: Int, val meshH: Int,
@@ -134,11 +135,11 @@ internal object VitalityRenderer {
             canvas.save()
             canvas.clipPath(path)
             paint.shader = null
-            paint.color = ((factor * 54f).toInt() shl 24) or LIP_RGB
+            paint.color = ((factor * MAX_LIP_ALPHA).toInt() shl 24) or LIP_RGB
             paint.maskFilter = BlurMaskFilter(max(1.5f, fw * .012f), BlurMaskFilter.Blur.NORMAL)
             canvas.drawPath(path, paint)
             if (extra) {
-                paint.color = ((factor * 54f * .35f).toInt() shl 24) or 0xB95070
+                paint.color = ((factor * MAX_LIP_ALPHA * .35f).toInt() shl 24) or 0xC44169
                 canvas.drawPath(path, paint)
             }
             canvas.restore()

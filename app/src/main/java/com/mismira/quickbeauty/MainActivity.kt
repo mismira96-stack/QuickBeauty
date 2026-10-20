@@ -1,6 +1,7 @@
 package com.quickbeauty.app
 
 import android.content.Context
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -17,6 +18,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -77,10 +79,51 @@ class MainActivity : AppCompatActivity() {
     private var selectionToast: Toast? = null
     private var isSaving = false
     private var imageLoadGeneration = 0
+    private var lastSavedSnapshot: EditSnapshot? = null
+    private var lastSavedUri: Uri? = null
+    private var isPickingImage = false
+    private lateinit var saveResultPanel: View
+
+    private fun currentEditSnapshot() = EditSnapshot.capture(params, faceParamsByIndex,
+        detectedLandmarks?.selectedFaceIndex ?: 0, (detectedLandmarks?.allFaces?.size ?: 0) > 1)
+
+    private fun hasUnsavedEdits(): Boolean = currentEditSnapshot() !=
+        (lastSavedSnapshot ?: EditSnapshot(BeautyAdjustParams(), emptyMap()))
+
+    private fun requestPhotoChange() {
+        if (isSaving || isPickingImage || progressBar.visibility == View.VISIBLE) return
+        if (!hasUnsavedEdits()) {
+            pickImageFromGallery()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.change_photo)
+            .setMessage(R.string.unsaved_photo_message)
+            .setPositiveButton(R.string.save_and_change) { _, _ -> saveProcessedImage(true) }
+            .setNeutralButton(R.string.discard_and_change) { _, _ -> pickImageFromGallery() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showSavedPhoto() {
+        val uri = lastSavedUri ?: return
+        try {
+            val viewIntent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "image/jpeg")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            // QuickBeauty also handles image VIEW intents. Never reopen the saved
+            // result in another editor instance when the user only wants to view it.
+            startActivity(Intent.createChooser(viewIntent, getString(R.string.view_saved_photo))
+                .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS,
+                    arrayOf(ComponentName(this, MainActivity::class.java))))
+        } catch (_: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, R.string.photo_viewer_unavailable, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val prefs by lazy { getSharedPreferences("quick_beauty_prefs", Context.MODE_PRIVATE) }
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        isPickingImage = false
         if (uri != null) {
             loadImage(uri)
         } else if (targetImageUri == null) {
@@ -102,6 +145,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         initViews()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = requestPhotoChange()
+        })
         applyWindowInsets()
         detector = FaceBodyDetector()
 
@@ -166,7 +212,9 @@ class MainActivity : AppCompatActivity() {
             findViewById(R.id.txtTabLegStretch)
         )
 
-        findViewById<View>(R.id.btnClose).setOnClickListener { finish() }
+        saveResultPanel = findViewById(R.id.saveResultPanel)
+        findViewById<View>(R.id.btnViewSaved).setOnClickListener { showSavedPhoto() }
+        findViewById<View>(R.id.btnClose).setOnClickListener { requestPhotoChange() }
         findViewById<View>(R.id.btnPrivacyPolicy).setOnClickListener { showPrivacyInformation() }
         btnReset.setOnClickListener { resetAll() }
         btnSave.setOnClickListener { saveProcessedImage() }
@@ -360,11 +408,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun pickImageFromGallery() {
+        if (isPickingImage) return
         try {
+            isPickingImage = true
             pickImageLauncher.launch("image/*")
         } catch (_: Throwable) {
+            isPickingImage = false
             Toast.makeText(this, getString(R.string.toast_error_photo_picker), Toast.LENGTH_SHORT).show()
-            finish()
+            if (targetImageUri == null) finish()
         }
     }
 
@@ -389,6 +440,9 @@ class MainActivity : AppCompatActivity() {
     private fun loadImage(uri: Uri) {
         if (isSaving) return
         val generation = ++imageLoadGeneration
+        lastSavedSnapshot = null
+        lastSavedUri = null
+        saveResultPanel.visibility = View.GONE
         this.targetImageUri = uri
         detectedLandmarks = null
         previewBitmap = null
@@ -583,7 +637,7 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, getString(R.string.toast_reset_complete), Toast.LENGTH_SHORT).show()
     }
 
-    private fun saveProcessedImage() {
+    private fun saveProcessedImage(changePhotoAfterSave: Boolean = false) {
         if (isSaving) return
         val uri = targetImageUri
         val landmarks = detectedLandmarks
@@ -596,6 +650,7 @@ class MainActivity : AppCompatActivity() {
         val snapshotParams = params.copy()
         val snapshotFaceParams = faceParamsByIndex.mapValues { it.value.copy() }
         val snapshotPreview = previewBitmap
+        val editSnapshot = currentEditSnapshot()
         isSaving = true
         btnSave.isEnabled = false
         progressBar.visibility = View.VISIBLE
@@ -626,7 +681,10 @@ class MainActivity : AppCompatActivity() {
             updateAdjustmentAvailability()
             if (savedUri != null) {
                 Toast.makeText(this@MainActivity, getString(R.string.toast_save_success), Toast.LENGTH_LONG).show()
-                finish()
+                lastSavedSnapshot = editSnapshot
+                lastSavedUri = savedUri
+                saveResultPanel.visibility = View.VISIBLE
+                if (changePhotoAfterSave) pickImageFromGallery()
             } else {
                 Toast.makeText(this@MainActivity, getString(R.string.toast_save_failed), Toast.LENGTH_SHORT).show()
             }

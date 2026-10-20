@@ -40,8 +40,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_close_vector"
-                    android:contentDescription="@string/close" />
+                    android:src="@drawable/ic_change_photo"
+                    android:contentDescription="@string/change_photo" />
             </FrameLayout>
 
             <!-- 타이틀 -->
@@ -113,6 +113,42 @@
                     android:focusable="true" />
             </LinearLayout>
         </RelativeLayout>
+        <LinearLayout
+            android:id="@+id/saveResultPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="6dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="4dp"
+            android:background="@drawable/bg_save_result"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/saved_photo_message"
+                android:textColor="#B9D9C9"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/btnViewSaved"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48dp"
+                android:minHeight="48dp"
+                android:paddingHorizontal="12dp"
+                android:gravity="center"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:textColor="#B6AAFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:text="@string/view_saved_photo" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- 사진 프리뷰 영역 (화면의 대부분을 차지) -->

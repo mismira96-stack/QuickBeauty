@@ -39,4 +39,12 @@
     <string name="toast_saving_high_res">고화질 원본으로 저장하는 중…</string>
     <string name="toast_save_success">새 사진으로 저장되었습니다! ✨ (갤러리 저장됨)</string>
     <string name="toast_save_failed">사진 저장에 실패했습니다.</string>
+    <string name="change_photo">사진 변경</string>
+    <string name="unsaved_photo_message">저장하지 않은 보정이 있어요. 다른 사진을 고르기 전에 저장할까요?</string>
+    <string name="save_and_change">저장하고 바꾸기</string>
+    <string name="discard_and_change">저장 없이 바꾸기</string>
+    <string name="cancel">취소</string>
+    <string name="photo_viewer_unavailable">사진 보기 앱을 열 수 없어요. 갤러리에서 저장한 사진을 확인해 주세요.</string>
+    <string name="saved_photo_message">✓ 저장했어요</string>
+    <string name="view_saved_photo">사진 보기</string>
 </resources>

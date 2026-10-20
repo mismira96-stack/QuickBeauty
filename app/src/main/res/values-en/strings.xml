@@ -39,4 +39,12 @@
     <string name="toast_saving_high_res">Saving in original high quality…</string>
     <string name="toast_save_success">Saved as new photo! ✨ (Saved to Gallery)</string>
     <string name="toast_save_failed">Failed to save photo.</string>
+    <string name="change_photo">Change photo</string>
+    <string name="unsaved_photo_message">You have unsaved edits. Save before choosing another photo?</string>
+    <string name="save_and_change">Save and change</string>
+    <string name="discard_and_change">Change without saving</string>
+    <string name="cancel">Cancel</string>
+    <string name="photo_viewer_unavailable">No photo viewer is available. Your photo is saved in Gallery.</string>
+    <string name="saved_photo_message">✓ Saved to Gallery</string>
+    <string name="view_saved_photo">View photo</string>
 </resources>

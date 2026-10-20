@@ -1,3 +1,14 @@
+## 2026-10-20 생기 강도 비교용 튜닝 (출시 미반영)
+
+- 추가 사용자 피드백으로 립 최대 alpha를 65에서 75로 상향했다. 볼터치 85, 색상, 보호 영역 및 워프는 유지한다. 44개 단위 테스트, assembleRelease와 APK 서명 검증 통과. blush85-lip75-test.apk를 Google Drive/QuickBeauty-tests에 복사하고 SHA-256 일치를 확인했다. 기존 테스트본은 보존하며 Play에는 업로드하지 않았다. 발색은 사용자 확인 대기.
+- 후속 사용자 요청: 볼터치 85를 유지하고 립 최대 alpha만 54에서 65로 소폭 상향. 아랫입술 보조 착색은 기존 35% 비율을 유지한다. 색상/보호 영역/워프는 변경하지 않는다. 새 테스트 APK는 blush85-lip65 이름으로 구분한다.
+- 립65 테스트본 testReleaseUnitTest 44건, assembleRelease 및 APK 서명 검증 통과. 별도 파일 quickbeauty-1.1.4-blush85-lip65-test.apk로 생성하여 Google Drive의 QuickBeauty-tests 폴더에도 복사했다. 이전 blush85 테스트본은 비교용으로 유지한다. 실기기 발색은 사용자 확인 대기, Play 업로드 없음.
+
+- 사용자 피드백: 출시본 생기가 거의 변하지 않는 느낌. 볼터치 MAX_CHEEK_ALPHA를 65에서 85로 조정했다.
+- 로즈 핑크 RGB, 립 강도, 영역 보호 및 워프 처리는 유지한다. 버전은 1.1.4(17) 테스트용 그대로이며 AAB 생성/스토어 업로드는 하지 않는다.
+- 실제 사진에서 자연스러움과 발색은 사용자 확인 후 확정한다.
+- testReleaseUnitTest 44건 및 assembleRelease 통과. 테스트 APK: C:/work/outputs/quickbeauty-vitality-85-20261020/quickbeauty-1.1.4-blush85-test.apk. 연결 기기 없음으로 설치는 하지 않았다.
+
 ## 2026-10-20 QuickBeauty 1.1.4 (17) 출시 준비
 
 - Google Play API 조회에서 기존 프로덕션 1.1.3(16)은 completed 상태로 확인. 16번은 신발 보호 수정본이며 이번 생기 수정본과 다르다.
@@ -354,3 +365,22 @@ app/src/main/java/com/mismira/quickbeauty/
 - Google rejected changesNotSentForReview=true for this app; committed the draft without that unsupported parameter. No review submission or rollout was requested.
 - SHA256: 4d7e14f5c16cadddc1165eed0fc39f0cd8b127d3e64b59052f8d186767809d68
 - Korean and English release notes included. User will test and submit manually tomorrow.
+
+## 2026-10-20 — Lip rose color trial
+- User requested unchanged blush. Kept cheek alpha 85 / RGB E0829D, lip alpha 75, geometry and masks unchanged. Lip RGB C95E7E -> D94A78; lower-lip accent B95070 -> C44169 for a more saturated rose pink.
+- 44 unit tests and assembleRelease passed. Signed APK verified and copied to Google Drive/QuickBeauty-tests as quickbeauty-1.1.4-blush85-lip75-rose-test.apk; SHA-256 copy match. Earlier trials retained. Visual acceptance pending; no Play upload.
+
+
+## 2026-10-20 — Keep editing after save / change-photo navigation
+- Save no longer finishes MainActivity. A persistent result panel offers View saved photo and Change photo; original URI and edit values stay unchanged to avoid cumulative edits.
+- System back and header photo-change icon use the same picker flow. Unsaved edits offer save-and-change / change-without-saving / cancel. Picker cancellation preserves the existing editor; cancel on initial launch still exits. Saving/loading blocks navigation.
+- EditSnapshot compares copied per-face/global values against the successful save snapshot, independent of selected face; zero-valued face entries are normalized. Edits made during save remain unsaved. Save failures keep the editor and do not open the picker.
+- English fallback/en and Korean strings added. 47 JVM tests passed; release/debug/instrumentation builds passed. API36 emulator synthetic regression passed: save retains editor/source, later edits become dirty, back opens picker, picker cancellation preserves edits. Test-generated gallery entry removed.
+- Signed test APK quickbeauty-1.1.4-photo-flow-rose-test.apk copied to Google Drive/QuickBeauty-tests with matching SHA-256. Includes approved rose lip trial; cheek unchanged. No AAB/Play upload or version bump. Physical-device acceptance pending.
+
+## 2026-10-20 — 1.1.5 (18) compact saved bar / production preparation
+- Replaced default gray buttons and long save text with a single subtle dark saved bar: short confirmation and lavender View photo action, with a 48dp touch target. Photo change remains in the header; duplicate button removed.
+- Includes accepted rose lip and blush tuning plus save/back/photo-change flow. Original-based editing and per-face snapshot tracking remain intact.
+- 47 JVM tests and release APK/AAB/debug/instrumentation builds passed. API36 synthetic flow regression and pixel makeup regressions passed; compact height/action target checked and English layout visually inspected. Test gallery entries removed.
+- APK signature and 16KB ZIP alignment passed. Version 1.1.5/code18 and Korean/English release notes prepared. Final Play review submission remains manual.
+- Connected Samsung SM-F971N installation succeeded; dumpsys confirms 1.1.5/code18. Production API readback confirms 18 draft and 17 completed, uploaded AAB SHA-256 matches. No final review submission.
