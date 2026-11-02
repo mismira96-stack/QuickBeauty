@@ -1,0 +1,22 @@
+{
+  "track": "production",
+  "releases": [
+    {
+      "name": "QuickBeauty 1.1.7 - 새 아이콘과 인물별 체형 보정",
+      "versionCodes": [
+        "20"
+      ],
+      "releaseNotes": [
+        {
+          "language": "ko-KR",
+          "text": "보라·파랑의 새로운 퀵뷰티 아이콘을 적용했습니다.\n여러 명 사진에서도 몸을 구분할 수 있는 인물은 선택해 어깨·몸매를 보정할 수 있습니다.\n확인된 몸의 상체부터 골반까지 슬림 효과가 자연스럽게 이어지도록 개선했습니다.\n인물별 보정값은 선택을 바꿔도 유지되며, 몸을 구분하기 어려우면 안내합니다."
+        },
+        {
+          "language": "en-US",
+          "text": "A fresh violet-and-blue QuickBeauty icon.\nAdjust shoulders and body shape for individually identified people in group photos.\nRefined slimming across the identified torso and hips with smooth transitions.\nEach person keeps their own adjustments. Body edits remain unavailable when the person cannot be identified reliably."
+        }
+      ],
+      "status": "completed"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "versionName": "1.1.7",
+  "versionCode": 20,
+  "track": "production",
+  "trackStatus": "completed",
+  "bundleSha256": "b20978813ca9ab55700aa82faafe6791c5d04e69b1c5a90bf2c2a2313ee4f7b5",
+  "iconSha256": "67d20fa361508bc0adb1d6ded20abab75b10be0ecf25a1366a9c59e57cdd99ae",
+  "committed": true,
+  "reviewSubmissionRequested": true,
+  "reviewBehavior": "ERROR_IF_IN_REVIEW",
+  "publicationApprovalVerified": false,
+  "otherListingTextVideoImagesAndTracksUnchanged": true
+}

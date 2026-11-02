@@ -1,0 +1,126 @@
+{
+  "tracks": {
+    "kind": "androidpublisher#tracksListResponse",
+    "tracks": [
+      {
+        "track": "production",
+        "releases": [
+          {
+            "name": "QuickBeauty 1.1.6 - 가볍게 만드는 스토리",
+            "versionCodes": [
+              "19"
+            ],
+            "releaseNotes": [
+              {
+                "language": "ko-KR",
+                "text": "보정한 사진으로 스토리를 만들고 Instagram 스토리에서 바로 열 수 있습니다.\n문구와 날짜의 서체·크기·위치를 조절하고 가로·세로쓰기를 선택할 수 있습니다.\n사진 확대·축소와 이동, 간편한 글자 스타일을 지원합니다.\n저장하지 않고도 보정 화면에서 스토리로 이동할 수 있습니다."
+              },
+              {
+                "language": "en-US",
+                "text": "Create a story from your edited photo and open it in Instagram Stories.\nAdjust caption and date fonts, sizes and positions, with horizontal or vertical captions.\nMove and resize your photo, and choose simple text style presets.\nOpen the story editor directly without saving to your gallery first."
+              }
+            ],
+            "status": "completed"
+          }
+        ]
+      },
+      {
+        "track": "beta"
+      },
+      {
+        "track": "alpha",
+        "releases": [
+          {
+            "name": "QuickBeauty 1.1.0 - 얼굴별 값 표시 개선",
+            "versionCodes": [
+              "13"
+            ],
+            "releaseNotes": [
+              {
+                "language": "ko-KR",
+                "text": "얼굴별 보정값이 전환된 얼굴에 맞게 표시됩니다.\n여러 얼굴 사진에서 각 얼굴의 보정이 함께 유지됩니다.\n얼굴을 길게 눌러 전체 사진의 비포·애프터를 비교할 수 있습니다."
+              }
+            ],
+            "status": "completed"
+          }
+        ]
+      },
+      {
+        "track": "internal",
+        "releases": [
+          {
+            "status": "draft"
+          }
+        ]
+      }
+    ]
+  },
+  "listings": {
+    "kind": "androidpublisher#listingsListResponse",
+    "listings": [
+      {
+        "language": "ko-KR",
+        "title": "퀵뷰티",
+        "fullDescription": "퀵뷰티는 사진의 톤과 얼굴·몸매 비율을 간편하게 조절하는 사진 편집 앱입니다.\n사진을 불러와 필요한 항목만 조정하고 결과를 저장하세요.\n\n주요 기능\n• 쿨톤: 사진의 색조와 피부 톤을 조절합니다.\n• 작은얼굴: 얼굴 크기를 조절합니다.\n• 턱선: 얼굴 아래쪽 라인을 보정합니다.\n• 얼굴길이: 얼굴의 세로 비율을 조절합니다.\n• 어깨: 어깨 라인을 보정합니다.\n• 몸매: 몸매 라인을 보정합니다.\n• 화면을 길게 눌러 원본과 보정 결과를 비교할 수 있습니다.\n\n사진 처리와 개인정보\n• 사진과 분석 결과는 기기에서 처리되며 앱 서버로 업로드되지 않습니다.\n• 얼굴·자세 분석에 Google ML Kit을 사용합니다. Google ML Kit 진단 및 사용 정보는 네트워크 연결 시 Google로 전송될 수 있습니다.\n• 저장된 결과 이미지는 DCIM/QuickBeauty 폴더에서 확인할 수 있습니다.\n• GPS 위치정보는 결과 이미지에 복사되지 않습니다.\n• 자세한 내용은 개인정보처리방침을 확인하세요.\n\n광고나 구독 없이 사용할 수 있습니다.",
+        "shortDescription": "사진의 톤과 얼굴·어깨·몸매 비율을 간편하게 보정하는 뷰티 에디터",
+        "video": "https://www.youtube.com/watch?v=2aAXv41Ceis"
+      },
+      {
+        "language": "en-US",
+        "title": "QuickBeauty",
+        "fullDescription": "QuickBeauty is a simple photo editor for adjusting tone, face proportions and body shape. Open a photo, adjust the controls you need, and save a new copy.\n\nFeatures\n• Tone: Adjust photo colors and skin tone.\n• Face Ratio: Adjust face size.\n• Jawline: Refine the lower face outline.\n• Chin Lift: Adjust vertical face proportions.\n• Shoulders: Adjust shoulder proportions.\n• Body Slim: Adjust the waist area.\n• In photos with multiple detected faces, select and edit each face independently. Shoulder and body adjustments are unavailable in these photos.\n• Hold the preview to compare the entire edited photo with the original.\n\nAdjustment availability depends on face and pose detection. Some small, obscured or angled faces may not be detected.\n\nPhoto processing and privacy\n• Photos and analysis results are processed on your device and are not uploaded to our servers.\n• Face and pose detection use Google ML Kit. ML Kit may send diagnostic and usage information to Google when a network connection is available. See our privacy policy for details.\n• Select photos using the Android Photo Picker, without broad access to your photo library.\n• Edited photos are saved as new copies in DCIM/QuickBeauty.\n• GPS location metadata is not copied to the output. Large images may be downsampled for reliable processing.\n\nNo ads, accounts or subscriptions required.",
+        "shortDescription": "Adjust photo tone, face proportions and body shape. No ads or subscriptions."
+      }
+    ]
+  },
+  "assets": {
+    "ko-KR": {
+      "icon": [
+        {
+          "id": "18308336993899383431",
+          "url": "https://lh3.googleusercontent.com/hjj9zhenyOdUZon6gcWvbX9A82CAaF2f1iUjOoxgAdZ2RL-nvc2Xwn3x7hFrRugYx2bOHAHFcGWJwT2-mU8bDw",
+          "sha1": "a8843433c9c5fd1ffe88f015831e377604b4a437",
+          "sha256": "e18011d5f86084efa5372905dc4bc75635896f721dbdf1c00bb05a61f65faf75",
+          "aiGeneratedState": "aiGeneratedStateUnspecified"
+        }
+      ],
+      "phoneScreenshots": [
+        {
+          "id": "14396221134652321443",
+          "url": "https://lh3.googleusercontent.com/2iMnns1SRLY_GH21RedFwl4OeTFvppQ0vHlN5R5esZ878fdBe9D59IykIx1ImPj46g",
+          "sha1": "419b8ce599a3c636d83663ac5fbc28a36ff76544",
+          "sha256": "79a84beddfb7fe35d0bbe49462b7cd4cb7d980bec57fa4e3026bf2951237b9d6",
+          "aiGeneratedState": "aiGeneratedStateUnspecified"
+        },
+        {
+          "id": "14562070687963863023",
+          "url": "https://lh3.googleusercontent.com/EBEmAQy7aDoOhb6KiHRjMvKUm4yC-kgbHBlc-QGa0yJiJ_Nx2EECkdiiFMCkUbmzWsTK",
+          "sha1": "c0a66e39e7840c22460fbab0dd7509f7e7704eab",
+          "sha256": "6efb69df51c6d68bfbf3e824bfc65f75cb9bf8acf864d3b35ed999ca378f5ee1",
+          "aiGeneratedState": "aiGeneratedStateUnspecified"
+        },
+        {
+          "id": "9827859127039479060",
+          "url": "https://lh3.googleusercontent.com/JRFl_KxcFwyn_B6BTgGjNpyq6UoJ9anRlBuPcf_LiGKIV3RXqC9YRgWWN8sZAgempd4",
+          "sha1": "dd8c3af3e16ccb487ac085ab11401d08c12f1a3e",
+          "sha256": "66b2314b667f535eacd8081b80f58038c5d6717bc612169159bd778dcf4332b0",
+          "aiGeneratedState": "aiGeneratedStateUnspecified"
+        }
+      ],
+      "featureGraphic": [
+        {
+          "id": "12423495052797898501",
+          "url": "https://lh3.googleusercontent.com/sJ5O3ZUMHGLXT5hLO-lwz1rociBWK_6jyab3H74NbWjEglkEZmJdcWhOZdiKnPfEtR4",
+          "sha1": "b6b509c36cb72d140cac95cfee20bc59cd183425",
+          "sha256": "74d41c9ee0631501f09541beda2b2f60456b72c30c6499c1ada3fd6aa05fe094",
+          "aiGeneratedState": "aiGeneratedStateUnspecified"
+        }
+      ]
+    },
+    "en-US": {
+      "icon": [],
+      "phoneScreenshots": [],
+      "featureGraphic": []
+    }
+  }
+}

@@ -8,3 +8,5 @@ Approved violet/blue A1 sparkle concept, adapted via built-in image generation t
 - Play 512px artwork and mask preview are in the media output/icon-a1-20261102 folder.
 - Existing app version retained for direct APK testing; no Play upload or publication in this change.
 - Source generation prompt: preserve A1 three white curved sparkles and satin ribbon, violet to royal blue gradient with restrained pink-lilac highlight; remove dark surround and rounded framing; center symbols inside launcher-safe area.
+
+Production preparation: user accepted the installed icon on 2026-11-02 and authorized publication together with per-person body support as 1.1.7 (20). Earlier no-upload statements describe the original icon trial. See RELEASE-1.1.7.md for final status.

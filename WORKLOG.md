@@ -403,3 +403,11 @@ app/src/main/java/com/mismira/quickbeauty/
 - Verified-body slimming spans upper torso through pelvis with smooth falloff and neighboring face/verified torso protection. No person segmentation; overlapping arms/clothes/background distortion remains a manual review concern.
 - 62 JVM tests, release/debug/instrumentation builds and release vital lint passed. Device diagnostic crop found 5 faces and 2 verified bodies including foreground user; body85 warp/export and horizontal mesh monotonicity passed. Release trial installed; user reports initial success, broader photo testing pending.
 - Private photo fixtures/results remain outside repository. Brightness discussion is separate; no tone code changed. See TRIAL-MULTI-PERSON-BODY.md.
+
+## 2026-11-02 — QuickBeauty 1.1.7 (20) production review submission
+- User accepted A1 icon and per-person body trial on connected phone/additional photos, then explicitly requested production release through final review submission.
+- Tone color/brightness formulas unchanged; both improvements deferred for weekend discussion.
+- Final 62 JVM tests, release APK/AAB build, release vital lint, APK signature and 16KB ZIP alignment passed.
+- Uploaded version20 AAB; verified server SHA-256 b20978813ca9ab55700aa82faafe6791c5d04e69b1c5a90bf2c2a2313ee4f7b5. Updated default ko-KR 512px store icon, keeping en-US inheritance; verified icon SHA-256 67d20fa361508bc0adb1d6ded20abab75b10be0ecf25a1366a9c59e57cdd99ae.
+- API validation and final commit succeeded with changesInReviewBehavior=ERROR_IF_IN_REVIEW (no existing review cancelled). Fresh read confirms production20/completed rollout configuration and correct icon. This confirms final submission/configuration, not Google approval or public store propagation.
+- Listing text/video, screenshots/banner, other languages' existing image assets, and other tracks compared unchanged. Evidence in release/1.1.7/*.json; source script tools/publish_quickbeauty_117.py. See RELEASE-1.1.7.md for artifacts and limitations.

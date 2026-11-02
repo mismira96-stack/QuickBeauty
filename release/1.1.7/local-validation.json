@@ -1,0 +1,8 @@
+{
+  "tests": 62,
+  "failures": 0,
+  "artifacts": {
+    "apk": "e05b12c10324ccc98cf42803cd38fca56b854c1e22ef2687672a2ce8c14ec608",
+    "aab": "b20978813ca9ab55700aa82faafe6791c5d04e69b1c5a90bf2c2a2313ee4f7b5"
+  }
+}

@@ -1,6 +1,6 @@
 # Multi-person body adjustment trial — 2026-11-02
 
-Branch: codex/multi-person-body-trial. Version 1.1.7/code20 is a LOCAL TRIAL; Play upload/publication remains paused.
+Historical trial record, branch codex/multi-person-body-trial. The user subsequently accepted device testing and additional photos, and explicitly authorized 1.1.7/code20 production submission on 2026-11-02. See RELEASE-1.1.7.md and release/1.1.7 for final evidence.
 
 - Preserve face selection and shared/global leg-length adjustment.
 - Detect a pose within each face-anchored crop (maximum 8 faces). Accept a torso only when confident in-frame shoulders/hips, anatomical proportions, and the pose nose uniquely match that face. Full-image pose can be reused only if it passes the same checks.
