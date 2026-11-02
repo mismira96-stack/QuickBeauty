@@ -390,3 +390,10 @@ app/src/main/java/com/mismira/quickbeauty/
 - Rebuilt the pre-icon-change working tree: APK SHA-256 exactly matches retained 1.1.6/code19 artifact (9a210ea17376d3b439bd4bc065058769db5e67d58e92eab39d644a1a7d30c0d0); 471 DEX/manifest/resource/asset entries also match byte-for-byte.
 - 60 unit tests passed; assembleRelease and release vital lint passed. Recorded source, tests, licensed fonts/design tooling and release evidence, excluding APK/AAB/signing credentials and private photos. New A1 icon work is separate from this released snapshot.
 
+
+## 2026-11-02 — A1 violet/blue launcher icon trial
+- User selected A1 sparkle concept. Built-in image generation adapted the approved design into full-bleed square artwork with no black surround or baked rounded corners. Preserved three white sparkles and violet/blue theme.
+- Updated adaptive foreground bitmap and legacy mdpi..xxxhdpi regular/round resources; kept gravity=fill to avoid earlier nodpi crop bug. Circle/rounded/square 72/108 viewport simulations visually inspected.
+- Code DEX files match released 1.1.6 exactly. Signed release APK and 16KB ZIP alignment verified; copied quickbeauty-1.1.6-code19-a1-icon-test.apk to Google Drive/QuickBeauty-tests (matching SHA-256 b2ba8a29b92628e00b0dbbfda9844f12e6ca0baa76f8b05a1f1745434978797c). No device connected; physical launcher verification pending. No Play upload/version bump.
+- 1024px master and design notes tracked in design/icon-a1; 512px Play artwork, original generated master and mask preview retained in media output/icon-a1-20261102.
+
