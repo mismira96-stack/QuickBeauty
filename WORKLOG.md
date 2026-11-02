@@ -384,3 +384,9 @@ app/src/main/java/com/mismira/quickbeauty/
 - 47 JVM tests and release APK/AAB/debug/instrumentation builds passed. API36 synthetic flow regression and pixel makeup regressions passed; compact height/action target checked and English layout visually inspected. Test gallery entries removed.
 - APK signature and 16KB ZIP alignment passed. Version 1.1.5/code18 and Korean/English release notes prepared. Final Play review submission remains manual.
 - Connected Samsung SM-F971N installation succeeded; dumpsys confirms 1.1.5/code18. Production API readback confirms 18 draft and 17 completed, uploaded AAB SHA-256 matches. No final review submission.
+
+## 2026-11-02 — Backfill released 1.1.6 source into Git
+- Found Story source/resources/tests/design notes and 1.1.6 release metadata left uncommitted after publication. Existing remote branch still ended at 1.1.5.
+- Rebuilt the pre-icon-change working tree: APK SHA-256 exactly matches retained 1.1.6/code19 artifact (9a210ea17376d3b439bd4bc065058769db5e67d58e92eab39d644a1a7d30c0d0); 471 DEX/manifest/resource/asset entries also match byte-for-byte.
+- 60 unit tests passed; assembleRelease and release vital lint passed. Recorded source, tests, licensed fonts/design tooling and release evidence, excluding APK/AAB/signing credentials and private photos. New A1 icon work is separate from this released snapshot.
+

@@ -21,7 +21,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -61,6 +60,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabScrollView: android.widget.HorizontalScrollView
     private lateinit var btnReset: View
     private lateinit var btnSave: View
+    private lateinit var btnStory: View
     private lateinit var txtParamValue: TextView
     private lateinit var seekBarAdjust: SeekBar
 
@@ -96,13 +96,11 @@ class MainActivity : AppCompatActivity() {
             pickImageFromGallery()
             return
         }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.change_photo)
-            .setMessage(R.string.unsaved_photo_message)
-            .setPositiveButton(R.string.save_and_change) { _, _ -> saveProcessedImage(true) }
-            .setNeutralButton(R.string.discard_and_change) { _, _ -> pickImageFromGallery() }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        QuickBeautyDialog.message(this,getString(R.string.change_photo),getString(R.string.unsaved_photo_message),listOf(
+            QuickBeautyDialog.Action(getString(R.string.save_and_change)) { saveProcessedImage(true) },
+            QuickBeautyDialog.Action(getString(R.string.discard_and_change)) { pickImageFromGallery() },
+            QuickBeautyDialog.Action(getString(R.string.cancel))
+        ))
     }
 
     private fun showSavedPhoto() {
@@ -122,8 +120,9 @@ class MainActivity : AppCompatActivity() {
 
     private val prefs by lazy { getSharedPreferences("quick_beauty_prefs", Context.MODE_PRIVATE) }
 
-    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         isPickingImage = false
+        val uri = if (result.resultCode == RESULT_OK) result.data?.data else null
         if (uri != null) {
             loadImage(uri)
         } else if (targetImageUri == null) {
@@ -168,6 +167,7 @@ class MainActivity : AppCompatActivity() {
 
         btnReset = findViewById(R.id.btnReset)
         btnSave = findViewById(R.id.btnSave)
+        btnStory = findViewById(R.id.btnStoryTemplate)
         txtParamValue = findViewById(R.id.txtParamValue)
         seekBarAdjust = findViewById(R.id.seekBarAdjust)
 
@@ -214,6 +214,7 @@ class MainActivity : AppCompatActivity() {
 
         saveResultPanel = findViewById(R.id.saveResultPanel)
         findViewById<View>(R.id.btnViewSaved).setOnClickListener { showSavedPhoto() }
+        btnStory.setOnClickListener { openStoryFromCurrentEdit() }
         findViewById<View>(R.id.btnClose).setOnClickListener { requestPhotoChange() }
         findViewById<View>(R.id.btnPrivacyPolicy).setOnClickListener { showPrivacyInformation() }
         btnReset.setOnClickListener { resetAll() }
@@ -411,7 +412,22 @@ class MainActivity : AppCompatActivity() {
         if (isPickingImage) return
         try {
             isPickingImage = true
-            pickImageLauncher.launch("image/*")
+            val samsung = PhotoPickerIntents.samsungGallery()
+            val gallery = PhotoPickerIntents.gallery()
+            val files = Intent.createChooser(PhotoPickerIntents.localFiles(), getString(R.string.change_photo))
+            val requested = when {
+                samsung.resolveActivity(packageManager) != null -> samsung
+                gallery.resolveActivity(packageManager) != null ->
+                    Intent.createChooser(gallery, getString(R.string.change_photo))
+                else -> files
+            }
+            try {
+                pickImageLauncher.launch(requested)
+            } catch (_: android.content.ActivityNotFoundException) {
+                pickImageLauncher.launch(files)
+            } catch (_: SecurityException) {
+                pickImageLauncher.launch(files)
+            }
         } catch (_: Throwable) {
             isPickingImage = false
             Toast.makeText(this, getString(R.string.toast_error_photo_picker), Toast.LENGTH_SHORT).show()
@@ -429,12 +445,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPrivacyInformation() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.privacy_policy_title)
-            .setMessage(R.string.privacy_policy_disclosure)
-            .setPositiveButton(R.string.privacy_policy_open) { _, _ -> openPrivacyPolicy() }
-            .setNegativeButton(R.string.close, null)
-            .show()
+        QuickBeautyDialog.message(this,getString(R.string.privacy_policy_title),getString(R.string.privacy_policy_disclosure),listOf(
+            QuickBeautyDialog.Action(getString(R.string.privacy_policy_open)) { openPrivacyPolicy() },
+            QuickBeautyDialog.Action(getString(R.string.close))
+        ))
     }
 
     private fun loadImage(uri: Uri) {
@@ -553,6 +567,8 @@ class MainActivity : AppCompatActivity() {
         btnSave.isEnabled = !isSaving && lm != null && (canAdjustFace || canAdjustBody || canAdjustLegs ||
             params.hasAnyEffect() || faceParamsByIndex.values.any { it.hasAnyEffect() })
         btnSave.alpha = if (btnSave.isEnabled) 1f else 0.5f
+        btnStory.isEnabled = !isSaving && !isPickingImage && targetImageUri!=null && previewBitmap!=null && progressBar.visibility!=View.VISIBLE
+        btnStory.alpha = if(btnStory.isEnabled) 1f else .5f
         if (lm != null && canAdjustFace && lm.allFaces.size > 1 && !canAdjustBody &&
             (currentTab == TAB_SHOULDER || currentTab == TAB_BODY_SLIM)) {
             hintCoachMark.animate().cancel()
@@ -611,6 +627,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyProgressInternal(progress: Int) {
+        saveResultPanel.visibility = View.GONE
         if (currentTab != TAB_COOL_TONE && currentTab != TAB_LEG_STRETCH && (detectedLandmarks?.allFaces?.size ?: 0) > 1) {
             faceParamsByIndex[detectedLandmarks!!.selectedFaceIndex] = params.copy(coolTone = 0, legStretch = 0)
         }
@@ -627,6 +644,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetAll() {
+        saveResultPanel.visibility = View.GONE
         params.reset()
         faceParamsByIndex.clear()
         prefs.edit().clear().apply()
@@ -635,6 +653,40 @@ class MainActivity : AppCompatActivity() {
         previewView.setParams(params)
         previewView.setFaceParams(faceParamsByIndex)
         Toast.makeText(this, getString(R.string.toast_reset_complete), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun openStoryFromCurrentEdit() {
+        if(isSaving || isPickingImage || progressBar.visibility==View.VISIBLE) return
+        val sourceUri=targetImageUri ?: return
+        if(previewBitmap==null) return
+        val landmarks=detectedLandmarks?.let { it.scaleTo(it.imageWidth,it.imageHeight) }
+        val effect=params.copy()
+        val faces=faceParamsByIndex.mapValues { it.value.copy() }
+        isSaving=true;progressBar.visibility=View.VISIBLE;updateAdjustmentAvailability()
+        lifecycleScope.launch {
+            try {
+                val storyUri=withContext(Dispatchers.IO) {
+                    var source: Bitmap?=null;var result: Bitmap?=null;var file: java.io.File?=null
+                    try {
+                        source=checkNotNull(BeautyBitmapUtils.decodeSampledBitmapFromUri(this@MainActivity,sourceUri,2000))
+                        result=checkNotNull(BeautyFilterEngine.process(source,landmarks,effect,faces))
+                        val directory=java.io.File(cacheDir,"story-inputs").apply { mkdirs() }
+                        directory.listFiles()?.filter { it.lastModified()<System.currentTimeMillis()-7*86400000L }?.forEach { it.delete() }
+                        file=java.io.File.createTempFile("corrected-",".png",directory)
+                        file.outputStream().use { check(result.compress(Bitmap.CompressFormat.PNG,100,it)) }
+                        androidx.core.content.FileProvider.getUriForFile(this@MainActivity,"$packageName.storyfiles",file)
+                    } catch(t: Throwable) { file?.delete();throw t }
+                    finally {
+                        if(result!==source && result?.isRecycled==false) result.recycle()
+                        if(source?.isRecycled==false) source.recycle()
+                    }
+                }
+                startActivity(Intent(this@MainActivity,SnsStoryActivity::class.java).apply { data=storyUri })
+            } catch(cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch(_: Exception) { Toast.makeText(this@MainActivity,R.string.story_prepare_failed,Toast.LENGTH_LONG).show() }
+            catch(_: OutOfMemoryError) { Toast.makeText(this@MainActivity,R.string.story_prepare_failed,Toast.LENGTH_LONG).show() }
+            finally { isSaving=false;progressBar.visibility=View.GONE;updateAdjustmentAvailability() }
+        }
     }
 
     private fun saveProcessedImage(changePhotoAfterSave: Boolean = false) {
@@ -683,7 +735,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, getString(R.string.toast_save_success), Toast.LENGTH_LONG).show()
                 lastSavedSnapshot = editSnapshot
                 lastSavedUri = savedUri
-                saveResultPanel.visibility = View.VISIBLE
+                saveResultPanel.visibility = if (currentEditSnapshot() == editSnapshot) View.VISIBLE else View.GONE
                 if (changePhotoAfterSave) pickImageFromGallery()
             } else {
                 Toast.makeText(this@MainActivity, getString(R.string.toast_save_failed), Toast.LENGTH_SHORT).show()

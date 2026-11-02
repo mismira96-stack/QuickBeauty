@@ -98,6 +98,20 @@
                     android:focusable="true" />
 
                 <TextView
+                    android:id="@+id/btnStoryTemplate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:minWidth="48dp"
+                    android:paddingHorizontal="8dp"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:textColor="#B6AAFF"
+                    android:textSize="13sp"
+                    android:text="@string/story_entry_short" />
+
+                <TextView
                     android:id="@+id/btnSave"
                     android:layout_width="wrap_content"
                     android:layout_height="34dp"
@@ -148,6 +162,7 @@
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:text="@string/view_saved_photo" />
+
         </LinearLayout>
     </LinearLayout>
 

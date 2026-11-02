@@ -25,6 +25,11 @@ class PhotoRegressionRunner : Instrumentation() {
     }
 
     override fun onStart() {
+        if (args.getString("story") == "true") {
+            try { finish(0, Bundle().apply { putString("stream", SingleStoryRegression.run(this@PhotoRegressionRunner,args.getString("textStressOnly")=="true")) }) }
+            catch (t: Throwable) { finish(1, Bundle().apply { putString("stream", t.stackTraceToString()) }) }
+            return
+        }
         if (args.getString("editflow") == "true") {
             try { finish(0, Bundle().apply { putString("stream", EditFlowRegression.run(this@PhotoRegressionRunner)) }) }
             catch (t: Throwable) { finish(1, Bundle().apply { putString("stream", t.stackTraceToString()) }) }

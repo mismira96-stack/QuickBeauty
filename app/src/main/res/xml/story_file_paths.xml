@@ -1,0 +1,4 @@
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="stories" path="stories/" />
+    <cache-path name="storyinputs" path="story-inputs/" />
+</paths>

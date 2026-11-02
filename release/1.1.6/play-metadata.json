@@ -1,0 +1,11 @@
+{
+  "package": "com.quickbeauty.app",
+  "track": "production",
+  "releaseName": "QuickBeauty 1.1.6 - 가볍게 만드는 스토리",
+  "versionCode": "19",
+  "status": "completed",
+  "releaseNotes": [
+    {"language":"ko-KR","text":"보정한 사진으로 스토리를 만들고 Instagram 스토리에서 바로 열 수 있습니다.\n문구와 날짜의 서체·크기·위치를 조절하고 가로·세로쓰기를 선택할 수 있습니다.\n사진 확대·축소와 이동, 간편한 글자 스타일을 지원합니다.\n저장하지 않고도 보정 화면에서 스토리로 이동할 수 있습니다."},
+    {"language":"en-US","text":"Create a story from your edited photo and open it in Instagram Stories.\nAdjust caption and date fonts, sizes and positions, with horizontal or vertical captions.\nMove and resize your photo, and choose simple text style presets.\nOpen the story editor directly without saving to your gallery first."}
+  ]
+}
