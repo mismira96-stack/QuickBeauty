@@ -246,8 +246,8 @@ class MainActivity : AppCompatActivity() {
                             params.faceSize = targetParams?.faceSize ?: 0
                             params.chinSlim = targetParams?.chinSlim ?: 0
                             params.faceLength = targetParams?.faceLength ?: 0
-                            params.shoulder = 0
-                            params.bodySlim = 0
+                            params.shoulder = targetParams?.shoulder ?: 0
+                            params.bodySlim = targetParams?.bodySlim ?: 0
                             previewView.setSource(previewBitmap, lm)
                             previewView.setParams(params)
                             previewView.setFaceParams(faceParamsByIndex)

@@ -397,3 +397,9 @@ app/src/main/java/com/mismira/quickbeauty/
 - Code DEX files match released 1.1.6 exactly. Signed release APK and 16KB ZIP alignment verified; copied quickbeauty-1.1.6-code19-a1-icon-test.apk to Google Drive/QuickBeauty-tests (matching SHA-256 b2ba8a29b92628e00b0dbbfda9844f12e6ca0baa76f8b05a1f1745434978797c). No device connected; physical launcher verification pending. No Play upload/version bump.
 - 1024px master and design notes tracked in design/icon-a1; 512px Play artwork, original generated master and mask preview retained in media output/icon-a1-20261102.
 
+## 2026-11-02 — Experimental per-person body support (publication paused)
+- User paused the icon release and requested a multi-person body trial. Created codex/multi-person-body-trial; 1.1.7/code20 remains local, not uploaded.
+- Added face-anchored crop poses with strict nose ownership/confidence/anatomy validation; cached immutable body anchors per face. Only matched bodies unlock shoulder/body sliders. Face-specific edits survive selection and export. Shared leg warp unchanged.
+- Verified-body slimming spans upper torso through pelvis with smooth falloff and neighboring face/verified torso protection. No person segmentation; overlapping arms/clothes/background distortion remains a manual review concern.
+- 62 JVM tests, release/debug/instrumentation builds and release vital lint passed. Device diagnostic crop found 5 faces and 2 verified bodies including foreground user; body85 warp/export and horizontal mesh monotonicity passed. Release trial installed; user reports initial success, broader photo testing pending.
+- Private photo fixtures/results remain outside repository. Brightness discussion is separate; no tone code changed. See TRIAL-MULTI-PERSON-BODY.md.

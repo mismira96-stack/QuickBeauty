@@ -59,6 +59,7 @@ class BeautyLandmarks(
 
     // 다중 얼굴 목록 및 현재 선택된 얼굴 인덱스
     val allFaces = mutableListOf<FaceInfo>()
+    val bodiesByFaceIndex = mutableMapOf<Int, PersonBody>()
     val safetyFaceBounds = mutableListOf<Rect>()
     var selectedFaceIndex: Int = 0
 
@@ -126,10 +127,13 @@ class BeautyLandmarks(
     /** 작은 얼굴이라도 실제로 일치한 포즈의 상체가 충분히 크면 체형 보정은 허용한다. */
     fun canAdjustBody(meshW: Int = BeautyFilterEngine.MESH_W, meshH: Int = BeautyFilterEngine.MESH_H): Boolean {
         if (!hasBody || imageWidth <= 0 || imageHeight <= 0) return false
-        // ML Kit의 SINGLE_IMAGE_MODE는 사진당 포즈 하나만 반환하므로,
-        // 다중 인물에서는 다른 사람의 포즈가 선택된 얼굴에 붙을 수 있다.
-        // 얼굴 보정은 계속 허용하되, 어깨·몸매는 보수적으로 잠근다.
-        if (allFaces.size > 1) return false
+        // Group photos need a separately verified, face-owned body. A generic
+        // full-image pose or a face-based inferred torso is not sufficient.
+        if (allFaces.size > 1) {
+            if (!hasReliablePose || !bodiesByFaceIndex.containsKey(selectedFaceIndex)) return false
+            return bodyBounds.width() >= imageWidth * 3f / meshW &&
+                bodyBounds.height() >= imageHeight * 2f / meshH
+        }
         if (hasFace && canAdjust(meshW, meshH)) return true
         if (!hasReliablePose) return false
         return bodyBounds.width() >= imageWidth * 3f / meshW &&
@@ -209,6 +213,7 @@ class BeautyLandmarks(
         val sy = targetHeight.toFloat() / imageHeight
 
         res.selectedFaceIndex = this.selectedFaceIndex
+        bodiesByFaceIndex.forEach { (index, body) -> res.bodiesByFaceIndex[index] = body.scaled(sx, sy) }
         res.hasFace = this.hasFace
         res.faceBounds.set(faceBounds.left * sx, faceBounds.top * sy, faceBounds.right * sx, faceBounds.bottom * sy)
         res.faceCenter.set(faceCenter.x * sx, faceCenter.y * sy)

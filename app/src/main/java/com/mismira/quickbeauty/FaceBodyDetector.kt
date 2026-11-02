@@ -92,7 +92,7 @@ class FaceBodyDetector {
                 val contourTask: Task<List<Face>> = contourDetector?.process(image) ?: Tasks.forResult(emptyList())
                 val poseTask: Task<Pose> = poseDetector?.process(image) ?: Tasks.forResult(null)
 
-                Tasks.whenAllComplete(faceTask, contourTask, poseTask).addOnCompleteListener {
+                Tasks.whenAllComplete(faceTask, contourTask, poseTask).addOnCompleteListener(executor) {
                     val poseResult = if (poseTask.isSuccessful) poseTask.result else null
                     val contourFaces = if (contourTask.isSuccessful) contourTask.result.orEmpty() else emptyList()
 
@@ -155,6 +155,56 @@ class FaceBodyDetector {
                         Log.w(TAG, "포즈 분석 중 예외: ${e.message}")
                     }
 
+                    if (landmarks.allFaces.size > 1) {
+                        // The full-image SDK returns a single pose. Re-run on a
+                        // face-anchored crop, then validate nose ownership before
+                        // accepting any torso. Never infer a group member's body.
+                        for (face in landmarks.allFaces.take(8)) {
+                            val full = poseResult?.let { bodyFromPose(it) }
+                            if (full != null && full.matches(face, landmarks.allFaces, w, h)) {
+                                landmarks.bodiesByFaceIndex[face.index] = full
+                                continue
+                            }
+                            val b = face.bounds
+                            val x0 = (b.centerX() - b.width() * 2.8f).toInt().coerceIn(0, w - 1)
+                            val x1 = (b.centerX() + b.width() * 2.8f).toInt().coerceIn(x0 + 1, w)
+                            val y0 = (b.top - b.height() * .25f).toInt().coerceIn(0, h - 1)
+                            val y1 = (b.bottom + b.height() * 7f).toInt().coerceIn(y0 + 1, h)
+                            var crop: Bitmap? = null
+                            var cropTask: Task<Pose>? = null
+                            try {
+                                crop = Bitmap.createBitmap(bitmap, x0, y0, x1 - x0, y1 - y0)
+                                val task = poseDetector?.process(InputImage.fromBitmap(crop, 0))
+                                cropTask = task
+                                if (task != null) {
+                                    // Keep bitmap alive even if task fails; await completion.
+                                    val pose = Tasks.await(task)
+                                    val body = bodyFromPose(pose, x0.toFloat(), y0.toFloat())
+                                    if (body != null && body.matches(face, landmarks.allFaces, w, h))
+                                        landmarks.bodiesByFaceIndex[face.index] = body
+                                }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Selected-person pose unavailable", e)
+                            } finally {
+                                val ownedCrop = crop?.takeIf { it !== bitmap }
+                                if (ownedCrop != null) {
+                                    val pending = cropTask
+                                    if (pending == null || pending.isComplete) ownedCrop.recycle()
+                                    else pending.addOnCompleteListener { ownedCrop.recycle() }
+                                }
+                            }
+                        }
+                        landmarks.hasBody = false
+                        landmarks.hasReliablePose = false
+                        landmarks.bodiesByFaceIndex[landmarks.selectedFaceIndex]?.applyTo(landmarks)
+                    } else if (landmarks.allFaces.size == 1 && poseResult != null) {
+                        val body = bodyFromPose(poseResult)
+                        if (body != null && body.matches(landmarks.allFaces[0], landmarks.allFaces, w, h)) {
+                            landmarks.bodiesByFaceIndex[landmarks.selectedFaceIndex] = body
+                            body.applyTo(landmarks)
+                        }
+                    }
+
                     // 감지 누락된 영역 인체 비율로 안전 보완 (소형 인물 과왜곡 방지)
                     landmarks.setupDefaultsIfEmpty()
 
@@ -180,10 +230,23 @@ class FaceBodyDetector {
 
         landmarks.hasBody = false
         landmarks.hasReliablePose = false
-        if (pose != null) {
+        if (landmarks.allFaces.size > 1) {
+            landmarks.bodiesByFaceIndex[targetIndex]?.applyTo(landmarks)
+        } else if (pose != null) {
             parsePoseIfMatched(pose, landmarks, landmarks.imageWidth, landmarks.imageHeight)
         }
         landmarks.setupDefaultsIfEmpty()
+    }
+
+    private fun bodyFromPose(pose: Pose, dx: Float = 0f, dy: Float = 0f): PersonBody? {
+        fun joint(type: Int): BodyJoint? = pose.getPoseLandmark(type)?.let {
+            BodyJoint(it.position.x + dx, it.position.y + dy, it.inFrameLikelihood)
+        }
+        return PersonBody(joint(PoseLandmark.NOSE) ?: return null,
+            joint(PoseLandmark.LEFT_SHOULDER) ?: return null,
+            joint(PoseLandmark.RIGHT_SHOULDER) ?: return null,
+            joint(PoseLandmark.LEFT_HIP) ?: return null,
+            joint(PoseLandmark.RIGHT_HIP) ?: return null)
     }
 
     private fun contourMatches(face: Face, contourFace: Face): Boolean {

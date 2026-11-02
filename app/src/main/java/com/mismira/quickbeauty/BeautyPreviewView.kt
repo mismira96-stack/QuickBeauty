@@ -185,7 +185,7 @@ class BeautyPreviewView @JvmOverloads constructor(
         lastScale = scale
 
         val currentLandmarks = landmarks
-        val hasFaceEdits = faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 || it.vitality > 0 }
+        val hasFaceEdits = faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 || it.shoulder > 0 || it.bodySlim > 0 || it.vitality > 0 }
         if (showOriginal || (params.isDefault() && !hasFaceEdits) || currentLandmarks == null) {
             paint.colorFilter = null
             canvas.save()
@@ -207,7 +207,7 @@ class BeautyPreviewView @JvmOverloads constructor(
             paint.colorFilter = null
         }
 
-        val hasWarpEdits = faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 }
+        val hasWarpEdits = faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 || it.shoulder > 0 || it.bodySlim > 0 }
         val needWarp = BeautyFilterEngine.hasSupportedWarp(currentLandmarks, params) || hasWarpEdits
         if (!needWarp) {
             canvas.save()
@@ -318,7 +318,7 @@ class BeautyPreviewView @JvmOverloads constructor(
         val lm = landmarks ?: return emptyList()
         if (lastScale <= 0f) return emptyList()
         val needWarp = BeautyFilterEngine.hasSupportedWarp(lm, params) ||
-            faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 }
+            faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 || it.shoulder > 0 || it.bodySlim > 0 }
         val vertices = if (needWarp) cachedVerts else null
         return lm.allFaces.map { face ->
             val b = face.bounds

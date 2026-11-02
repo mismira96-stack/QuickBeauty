@@ -26,7 +26,7 @@
     <string name="coach_mark_no_face_body_available">No face detected · Body &amp; Tone available</string>
     <string name="coach_mark_no_face_tone_available">No face detected · Tone available</string>
     <string name="coach_mark_no_legs_available">Legs not detected · Try a full-body photo</string>
-    <string name="coach_mark_multiple_faces_body_unavailable">Group photo: shoulder/body edits unavailable · Face edits available</string>
+    <string name="coach_mark_multiple_faces_body_unavailable">Cannot identify this person’s body · Face edits and Tone available</string>
     <string name="coach_mark_multiple_faces_legs_shared">Leg stretch applies to everyone standing in the photo ✨</string>
     <string name="coach_mark_sitting_face_legs_unavailable">Leg stretch unavailable · A face overlaps the adjustment area</string>
 

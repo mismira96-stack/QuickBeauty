@@ -158,13 +158,15 @@ object BeautyFilterEngine {
             }
             val displacement = FloatArray(base.size)
             for (face in landmarks.allFaces) {
-                val faceParams = faceParamsByIndex[face.index]?.copy(legStretch = 0, shoulder = 0, bodySlim = 0) ?: continue
-                if (faceParams.faceSize == 0 && faceParams.chinSlim == 0 && faceParams.faceLength == 0) continue
+                val faceParams = faceParamsByIndex[face.index]?.copy(legStretch = 0) ?: continue
+                if (faceParams.faceSize == 0 && faceParams.chinSlim == 0 && faceParams.faceLength == 0 &&
+                    faceParams.shoulder == 0 && faceParams.bodySlim == 0) continue
                 val perFace = landmarks.scaleTo(width, height).also {
                     it.selectedFaceIndex = face.index
                     it.applyFaceInfo(it.allFaces.first { f -> f.index == face.index })
                     it.hasBody = false
                     it.hasReliablePose = false
+                    it.bodiesByFaceIndex[face.index]?.applyTo(it)
                 }
                 val warped = computeWarpedVertices(width, height, perFace, faceParams, meshW, meshH)
                 for (j in warped.indices) displacement[j] += warped[j] - base[j]
@@ -306,14 +308,24 @@ object BeautyFilterEngine {
         val shoulderYSpan = max(20f, shoulderBotY - shoulderTopY)
 
         // 5. 몸매 슬림 파라미터 - 어깨와 분리된 허리/복부 집중 영역 (무릎/다리/바닥 번짐 완전 차단)
-        val bodyTopY = shoulderCenterY + fh * 0.35f
-        val rawBottomY = if (hasBody && landmarks.leftHip.y > bodyTopY) {
+        val verifiedBody = landmarks?.bodiesByFaceIndex?.get(landmarks.selectedFaceIndex)
+        val otherBodies = if (verifiedBody != null && (bodySlimFactor > 0f || shoulderFactor > 0f))
+            landmarks.bodiesByFaceIndex.filterKeys { it != landmarks.selectedFaceIndex }.values.toList() else emptyList()
+        val verifiedTorsoHeight = verifiedBody?.let {
+            (it.leftHip.y + it.rightHip.y - it.leftShoulder.y - it.rightShoulder.y) * .5f
+        } ?: 0f
+        val bodyTopY = if (verifiedBody != null) shoulderCenterY + verifiedTorsoHeight * .08f
+            else shoulderCenterY + fh * 0.35f
+        val rawBottomY = if (verifiedBody != null) {
+            (verifiedBody.leftHip.y + verifiedBody.rightHip.y) * .5f + verifiedTorsoHeight * .12f
+        } else if (hasBody && landmarks.leftHip.y > bodyTopY) {
             // 골반 위치가 감지된 경우 골반 약간 아래까지만 허용 (무릎/다리 침범 방지)
             landmarks.leftHip.y + fh * 0.45f
         } else {
             bodyTopY + fh * 2.5f
         }
-        val bodyBottomY = min(min(height.toFloat(), bodyTopY + fh * 3.0f), rawBottomY)
+        val bodyBottomY = if (verifiedBody != null) min(height.toFloat(), rawBottomY)
+            else min(min(height.toFloat(), bodyTopY + fh * 3.0f), rawBottomY)
         val bodyCenterY = (bodyTopY + bodyBottomY) * 0.5f
         val bodyCenterX = landmarks?.bodyBounds?.centerX() ?: fcX
         val bodyHalfHeight = max(20f, (bodyBottomY - bodyTopY) * 0.5f)
@@ -331,6 +343,7 @@ object BeautyFilterEngine {
                 var currX = origX
                 var currY = origY
                 val protectedOtherFace = isInsideOtherFace(origX, origY)
+                val bodyProtection = otherBodies.maxOfOrNull { it.protectionAt(origX, origY) } ?: 0f
 
                 // ==========================================
                 // 1. 얼굴 전체 크기 축소 (Face Size - 소두)
@@ -443,7 +456,7 @@ object BeautyFilterEngine {
                 // 4. 어깨 넓히기 (Shoulder Broaden / 직각 어깨)
                 // 목은 안전하게 보호하고, 어깨선만 바깥으로 확장하여 당당한 직각 어깨 핏 형성
                 // ==========================================
-                if (shoulderFactor > 0.001f && hasBody && origY in shoulderTopY..shoulderBotY) {
+                if (shoulderFactor > 0.001f && hasBody && !protectedOtherFace && origY in shoulderTopY..shoulderBotY) {
                     val yNorm = (origY - shoulderTopY) / shoulderYSpan
                     val yWeight = sin(yNorm * Math.PI.toFloat())
 
@@ -473,7 +486,7 @@ object BeautyFilterEngine {
                         val edgeSpan = max(width * 0.08f, shoulderHalfSpan * 0.5f)
                         val edgeT = (min(origX, width - origX) / edgeSpan).coerceIn(0f, 1f)
                         val edgeWeight = edgeT * edgeT * (3f - 2f * edgeT)
-                        val push = maxShoulderPush * yWeight * xWeight * edgeWeight
+                        val push = maxShoulderPush * yWeight * xWeight * edgeWeight * (1f - bodyProtection)
                         if (dx < 0f) {
                             currX -= push // 좌측 어깨 -> 바깥쪽(왼쪽)으로 확장
                         } else {
@@ -491,22 +504,27 @@ object BeautyFilterEngine {
                 // 5. 몸매 슬림 (Body Slim)
                 // 복부/허리 라인을 중앙으로 완만하게 축소
                 // ==========================================
-                if (bodySlimFactor > 0.001f && hasBody) {
+                if (bodySlimFactor > 0.001f && hasBody && !protectedOtherFace) {
                     if (origY in bodyTopY..bodyBottomY) {
                         val dy = abs(origY - bodyCenterY)
                         val yNorm = 1.0f - (dy / bodyHalfHeight)
                         if (yNorm > 0f) {
-                            val yWeight = sin(yNorm * Math.PI.toFloat() * 0.5f)
+                            val yWeight = if (verifiedBody != null) {
+                                val t = ((origY - bodyTopY) / max(1f, bodyBottomY - bodyTopY)).coerceIn(0f, 1f)
+                                fun smooth(v: Float): Float = v.coerceIn(0f, 1f).let { it * it * (3f - 2f * it) }
+                                smooth(t / .22f) * smooth((1f - t) / .22f)
+                            } else sin(yNorm * Math.PI.toFloat() * 0.5f)
                             val dx = origX - bodyCenterX
                             val absDx = abs(dx)
-                            val maxBodyW = bodyHalfWidth * 2.0f
+                            val maxBodyW = bodyHalfWidth * if (verifiedBody != null) 1.6f else 2.0f
                             if (absDx < maxBodyW) {
                                 val xNorm = (maxBodyW - absDx) / maxBodyW
                                 val xWeight = xNorm * xNorm
                                 val edgeSpan = max(width * 0.08f, bodyHalfWidth * 0.5f)
                                 val edgeT = (min(origX, width - origX) / edgeSpan).coerceIn(0f, 1f)
                                 val edgeWeight = edgeT * edgeT * (3f - 2f * edgeT)
-                                val totalWeight = yWeight * xWeight * bodySlimFactor * 0.22f * edgeWeight
+                                val strength = if (verifiedBody != null) .38f else .22f
+                                val totalWeight = yWeight * xWeight * bodySlimFactor * strength * edgeWeight * (1f - bodyProtection)
                                 currX -= dx * totalWeight
                             }
                         }
@@ -552,7 +570,7 @@ object BeautyFilterEngine {
             else landmarks.scaleTo(w, h)
         } else null
 
-        val needWarp = (hasSupportedWarp(scaledLandmarks, params) || faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 }) && scaledLandmarks != null
+        val needWarp = (hasSupportedWarp(scaledLandmarks, params) || faceParamsByIndex.values.any { it.faceSize > 0 || it.chinSlim > 0 || it.faceLength > 0 || it.shoulder > 0 || it.bodySlim > 0 }) && scaledLandmarks != null
         val verts: FloatArray?
         val meshW: Int
         val meshH: Int
