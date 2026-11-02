@@ -411,3 +411,13 @@ app/src/main/java/com/mismira/quickbeauty/
 - Uploaded version20 AAB; verified server SHA-256 b20978813ca9ab55700aa82faafe6791c5d04e69b1c5a90bf2c2a2313ee4f7b5. Updated default ko-KR 512px store icon, keeping en-US inheritance; verified icon SHA-256 67d20fa361508bc0adb1d6ded20abab75b10be0ecf25a1366a9c59e57cdd99ae.
 - API validation and final commit succeeded with changesInReviewBehavior=ERROR_IF_IN_REVIEW (no existing review cancelled). Fresh read confirms production20/completed rollout configuration and correct icon. This confirms final submission/configuration, not Google approval or public store propagation.
 - Listing text/video, screenshots/banner, other languages' existing image assets, and other tracks compared unchanged. Evidence in release/1.1.7/*.json; source script tools/publish_quickbeauty_117.py. See RELEASE-1.1.7.md for artifacts and limitations.
+
+## 2026-11-02 — 제출 후 발견: 몸매 보정 시 팔 두께 증가 / 후속 TODO
+
+- 사용자가 몸통은 줄지만 팔뚝이 굵어진다고 보고했다. 연결된 Samsung SM-F971N의 현재 화면(몸매 95)에서 배경을 길게 눌러 `원본 비교 중` 상태를 실제로 확인하고, 보정 상태와 동일 화면을 비교했다. 비교 후 누르기를 해제했으며 보정값은 바꾸지 않았다.
+- 팔 두께가 상대적으로만 커 보이는 현상에 그치지 않고, 일부 행에서 피부 구간 너비가 약 2~3 화면 픽셀 늘어나는 것을 확인했다. 단순 피부색 임계값 기반의 대략적인 진단이며 정밀 팔 분할이나 전체 사진에 대한 보장은 아니다.
+- 원인 후보는 팔 안쪽과 바깥쪽에 서로 다른 수평 변위가 적용되는 국소 신장이다. 현재의 메쉬 가로 단조성 검사는 뒤집힘만 막으며, 이런 국소 두께 증가를 방지하지 않는다. 팔 경계/국소 배율 보호는 아직 구현하지 않았다.
+- 사용자 결정: 이번 1.1.7 제출은 유지. 이 보고로 심사를 취소하거나 새 번들을 올리지 않았고 앱 코드는 수정하지 않았다. 재현 절차, 개선 방향과 회귀 검증 항목을 `TODO.md`에 기록했다.
+- 쿨톤의 전역 색감/밝기 처리는 기존 그대로다. 얼굴·피부 중심 적용과 어두운 사진 밝기 보강은 주말에 함께 논의하기로 했고, TODO 두 항목으로 남겼다.
+- 화면 증거는 로컬 `C:/work/outputs/quickbeauty-body-selection-20261102/arm-current-after.png`, `arm-held-before.png`에만 보관한다. 개인 사진은 Git에 추가하지 않았고 갤러리에 새 사진도 생성하지 않았다.
+- 오늘의 1.1.6 Git 누락 복구, 아이콘 교체, 몸매 시험, 1.1.7 제출 기록은 위 날짜별 항목과 커밋에 이미 포함되어 있다. 이번 커밋은 후속 이슈와 미결정 사항을 보완하는 문서 변경만 포함한다.
