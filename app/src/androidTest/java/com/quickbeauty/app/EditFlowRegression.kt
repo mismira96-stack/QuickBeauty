@@ -29,7 +29,7 @@ internal object EditFlowRegression {
         onMain {
             i.targetContext.startActivity(Intent(i.targetContext, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW; data = Uri.fromFile(fixture)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             })
         }
         val a = checkNotNull(i.waitForMonitorWithTimeout(monitor, 15000)) as MainActivity
@@ -131,6 +131,16 @@ internal object EditFlowRegression {
                 check(call("hasUnsavedEdits") == true)
                 (field("params").get(a) as BeautyAdjustParams).coolTone = 35
             }
+            onMain {
+                (field("params").get(a) as BeautyAdjustParams).coolTone = 40
+                a.onBackPressedDispatcher.onBackPressed()
+                check(!field("isPickingImage").getBoolean(a)) { "Back must not open Gallery" }
+            }
+            clickDialogText(R.string.cancel)
+            onMain {
+                check(!a.isFinishing && call("hasUnsavedEdits")==true)
+                (field("params").get(a) as BeautyAdjustParams).coolTone = 35
+            }
             i.waitForIdleSync()
             i.uiAutomation.takeScreenshot()?.let { screenshot ->
                 File(i.targetContext.cacheDir, "saved-bar.png").outputStream().use {
@@ -139,11 +149,20 @@ internal object EditFlowRegression {
                 screenshot.recycle()
             }
             onMain {
-                a.onBackPressedDispatcher.onBackPressed()
-                check(field("isPickingImage").getBoolean(a)) { "Back did not open picker" }
+                a.findViewById<View>(R.id.btnClose).performClick()
+                check(field("isPickingImage").getBoolean(a)) { "Change photo did not open picker" }
             }
             i.waitForIdleSync()
-            i.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+            // OEM galleries can have nested album screens. Navigate back until
+            // the picker actually returns, without sending Back to the editor.
+            repeat(4) {
+                var picking = false
+                onMain { picking = field("isPickingImage").getBoolean(a) }
+                if (picking) {
+                    i.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+                    Thread.sleep(400)
+                }
+            }
             await { !field("isPickingImage").getBoolean(a) }
             onMain {
                 check(!a.isFinishing) { "Cancel picker closed editor" }
@@ -151,8 +170,10 @@ internal object EditFlowRegression {
                     "Picker returned another photo; cancellation-only test was interrupted by a selection"
                 }
                 check((field("params").get(a) as BeautyAdjustParams).coolTone == 35)
+                a.onBackPressedDispatcher.onBackPressed()
+                check(a.isFinishing) { "Back from saved editor must exit instead of reopening Gallery" }
             }
-            return "Direct Story without gallery save preserves correction and source; save keeps editor and original, saved snapshot clears dirty state, later changes are dirty, back opens picker, cancel preserves edits: passed\n"
+            return "Direct Story without gallery save preserves correction and source; save keeps editor and original, saved snapshot clears dirty state, later changes are dirty, photo-change opens picker, cancel preserves edits, Back exits saved editor: passed\n"
         } finally {
             saved?.let { i.targetContext.contentResolver.delete(it, null, null) }
             onMain { story?.finish();a.finish() }

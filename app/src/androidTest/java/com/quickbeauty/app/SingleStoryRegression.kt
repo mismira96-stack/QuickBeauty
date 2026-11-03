@@ -40,7 +40,7 @@ internal object SingleStoryRegression {
                 check(p.layout.lineCount==if(vertical) StoryCharacters.split(text).size else 1)
                 check((0 until p.layout.lineCount).all { p.layout.getEllipsisCount(it)==0 })
                 check(p.bounds.left>=24 && p.bounds.right<=1056 && p.bounds.top>=0 && p.bounds.bottom<=1920)
-                check(p.fixedDate!!.bounds.left==72f && p.fixedDate.bounds.top==216f)
+                check(kotlin.math.abs(StoryLayout.center(p.fixedDate!!.bounds).x-.5f)<.001f && kotlin.math.abs(p.fixedDate.bounds.bottom-(1920f-StoryLayout.TEXT_BOTTOM_MARGIN))<.01f)
                 check(p.fixedDate.paint.textSize==84f)
                 if(textStressOnly) {
                     val ink=Bitmap.createBitmap(p.layout.width+32,p.layout.height+32,Bitmap.Config.ARGB_8888)
@@ -57,9 +57,18 @@ internal object SingleStoryRegression {
         val white=engine.captionPlan(StoryTemplateType.CLEAN_PURE,"흰 바탕",StoryTextStyle.MEMO,"2026.10.25",
             captionBackground=StoryBackgroundMode.WHITE,dateBackground=StoryBackgroundMode.NONE,
             datePosition=StoryTextPosition(5f,-5f),dateScale=2.2f)
-        check(white.readabilityColor==Color.WHITE && white.paint.color==Color.BLACK)
+        check(white.readabilityColor==StoryLayout.CANVAS_COLOR && white.paint.color==Color.BLACK)
         check(white.fixedDate!!.background==Color.TRANSPARENT)
         check(white.fixedDate.bounds.top>=0 && white.fixedDate.bounds.right<=1056)
+        val bottom=engine.captionPlan(StoryTemplateType.CLEAN_PURE,"하단 중앙",StoryTextStyle.TEMPLATE,"2026.11.03",
+            captionBackground=StoryBackgroundMode.WHITE,dateBackground=StoryBackgroundMode.WHITE)
+        check(kotlin.math.abs(StoryLayout.center(bottom.bounds).x-.5f)<.001f)
+        check(bottom.bounds.bottom<=bottom.fixedDate!!.bounds.top-StoryLayout.TEXT_STACK_GAP+.01f)
+        check(bottom.readabilityColor==StoryLayout.CANVAS_COLOR && bottom.fixedDate!!.background==StoryLayout.CANVAS_COLOR)
+        val manual=engine.captionPlan(StoryTemplateType.CLEAN_PURE,"수동 위치",StoryTextStyle.TEMPLATE,"2026.11.03",
+            StoryTextPosition(.3f,.35f),datePosition=StoryTextPosition(.7f,.2f))
+        check(kotlin.math.abs(StoryLayout.center(manual.bounds).x-.3f)<.001f)
+        check(kotlin.math.abs(StoryLayout.center(manual.fixedDate!!.bounds).y-.2f)<.001f)
         val none=engine.captionPlan(StoryTemplateType.CLEAN_PURE,"배경 없음",StoryTextStyle.MEMO,null,captionBackground=StoryBackgroundMode.NONE)
         check(none.readabilityColor==null)
         write(engine.render(StoryTemplateType.CLEAN_PURE,"",photoPosition=StoryPhotoPosition(.5f,.5f,.72f)),"single-centered.png")
@@ -68,7 +77,7 @@ internal object SingleStoryRegression {
         val stamp=darkRenderer.captionPlan(StoryTemplateType.CLEAN_PURE,"",StoryTextStyle.TEMPLATE,"2026.10.24",dateBackground=StoryBackgroundMode.WHITE).fixedDate!!
         val rounded=darkRenderer.render(StoryTemplateType.CLEAN_PURE,"",date="2026.10.24",dateBackground=StoryBackgroundMode.WHITE)
         check(rounded.getPixel(stamp.bounds.left.toInt()+1,stamp.bounds.top.toInt()+1)==Color.BLACK) { "Date background still rectangular" }
-        check(rounded.getPixel(((stamp.bounds.left+stamp.bounds.right)/2).toInt(),stamp.bounds.top.toInt()+2)==Color.WHITE)
+        check(rounded.getPixel(((stamp.bounds.left+stamp.bounds.right)/2).toInt(),stamp.bounds.top.toInt()+2)==StoryLayout.CANVAS_COLOR)
         rounded.recycle();dark.recycle()
 
         val monitor=i.addMonitor(SnsStoryActivity::class.java.name,null,false)
@@ -96,6 +105,17 @@ internal object SingleStoryRegression {
         try {
             ready()
             main {
+                val row=field("formatRow").get(activity) as android.widget.LinearLayout
+                if(row.width>row.childCount*56*context.resources.displayMetrics.density) {
+                    val first=row.getChildAt(0);val last=row.getChildAt(row.childCount-1)
+                    check(kotlin.math.abs((first.left+last.right)*.5f-row.width*.5f)<2f) { "Font presets are not centered" }
+                }
+                val buttons=listOf("captionButton","fontButton","sizeButton","verticalButton","today")
+                    .map { field(it).get(activity) as android.widget.TextView }
+                check(buttons.all { it.gravity==android.view.Gravity.CENTER && !it.includeFontPadding })
+                check(buttons.map { it.top+it.height/2 }.distinct().size==1) { "Toolbar controls are not aligned" }
+            }
+            main {
                 check(SnsStoryActivity::class.java.declaredFields.none { it.name=="tabs" })
                 val e=editor();e.focusCaption()
                 val input=e.captionInput
@@ -118,6 +138,7 @@ internal object SingleStoryRegression {
 
             }
             i.waitForIdleSync();SystemClock.sleep(300)
+            i.uiAutomation.takeScreenshot()?.let { write(it,"story-bottom-defaults.png") }
             main {
                 val e=editor();val before=e.captionInput.captionPlan!!
                 val slider=field("sizeSlider").get(activity) as SeekBar
@@ -190,7 +211,8 @@ internal object SingleStoryRegression {
                     val event=MotionEvent.obtain(time,SystemClock.uptimeMillis(),action,x,y,0);e.dispatchTouchEvent(event);event.recycle()
                 }
                 check(field("captionPosition").get(activity)!=null)
-                val cx=e.width*.30f;val cy=e.height*.7f
+                // Pinch a free photo area, away from the new bottom caption/date positions.
+                val cx=e.width*.50f;val cy=e.height*.35f
                 var tick=0L
                 fun multi(action: Int,span: Float,two: Boolean) {
                     val count=if(two) 2 else 1

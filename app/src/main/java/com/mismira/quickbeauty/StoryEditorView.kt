@@ -151,6 +151,11 @@ class StoryEditorView(context: Context) : FrameLayout(context) {
 
     fun selectElement(element: StoryElement) {
         val selected=if(element==StoryElement.DATE && date.isNullOrBlank()) StoryElement.CAPTION else element
+        if(selected==StoryElement.DATE && position==null) {
+            // Initial auto-stacking happens once. Editing the date must not
+            // subsequently move an independently positioned caption.
+            currentCaptionPosition?.let { position=it;onPositionChanged?.invoke(it) }
+        }
         if(selectedElement==selected) return
         selectedElement=selected
         if(selected==StoryElement.DATE) endEditing()

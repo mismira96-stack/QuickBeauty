@@ -131,8 +131,10 @@ class StoryRenderer(private val photo: Bitmap,
             val column=StoryLayout.textRegion(StoryTemplateType.SIDE_JOURNAL)
             factor=minOf(factor,column.width/base.bounds.width,column.height/base.bounds.height)
         }
-        val bounds=StoryLayout.block(base.bounds.width*factor,base.bounds.height*factor,
-            position ?: StoryLayout.center(base.bounds))
+        val fixedDate=if(detached && !date.isNullOrBlank()) datePlan(template,date,photoPosition,dateScale,datePosition,dateBackground,dateStyle) else null
+        val preferred=position ?: if(detached) StoryLayout.bottomTextPosition(base.bounds.height*factor,
+            fixedDate?.bounds?.takeIf { datePosition==null }) else StoryLayout.center(base.bounds)
+        val bounds=StoryLayout.block(base.bounds.width*factor,base.bounds.height*factor,preferred)
         val contrast=if(template in StoryLayout.availableTemplates && style!=StoryTextStyle.LABEL)
             photoTextColor(template,bounds,photoPosition) else null
         val autoColor=when(captionBackground) { StoryBackgroundMode.WHITE -> Color.BLACK; StoryBackgroundMode.NONE -> Color.WHITE; StoryBackgroundMode.AUTO -> contrast?.textColor }
@@ -140,8 +142,8 @@ class StoryRenderer(private val photo: Bitmap,
             base.paint.color=autoColor
             base.paint.setShadowLayer(4f,0f,1f,if(autoColor==Color.WHITE) 0x99000000.toInt() else 0x99FFFFFF.toInt())
         }
-        return base.copy(bounds=bounds,padding=base.padding*factor,contentScale=factor,readabilityColor=when(captionBackground) { StoryBackgroundMode.AUTO -> contrast?.background;StoryBackgroundMode.WHITE -> Color.WHITE;StoryBackgroundMode.NONE -> null },
-            fixedDate=if(detached && !date.isNullOrBlank()) datePlan(template,date,photoPosition,dateScale,datePosition,dateBackground,dateStyle) else null,
+        return base.copy(bounds=bounds,padding=base.padding*factor,contentScale=factor,readabilityColor=when(captionBackground) { StoryBackgroundMode.AUTO -> contrast?.background;StoryBackgroundMode.WHITE -> StoryLayout.CANVAS_COLOR;StoryBackgroundMode.NONE -> null },
+            fixedDate=fixedDate,
             datePaint=Paint(base.datePaint).apply { textSize=base.datePaint.textSize*factor;autoColor?.let { color=it } })
     }
     private fun datePlan(template: StoryTemplateType,date: String,photoPosition: StoryPhotoPosition?,dateScale: Float,position: StoryTextPosition?,mode: StoryBackgroundMode,style: StoryTextStyle): DatePlan {
@@ -149,11 +151,10 @@ class StoryRenderer(private val photo: Bitmap,
             typeface=when(style) { StoryTextStyle.MEMO -> handwriting; StoryTextStyle.JOURNAL -> journal; else -> Typeface.create("sans-serif-medium",Typeface.NORMAL) };textSize=56f*(if(dateScale.isFinite()) dateScale.coerceIn(.5f,2.2f) else 1f);textAlign=Paint.Align.LEFT
         }
         val width=paint.measureText(date)+24f;val height=paint.descent()-paint.ascent()+16f
-        val box=if(position==null) StoryLayout.Box(72f,216f,72f+width,216f+height)
-            else StoryLayout.block(width,height,position)
+        val box=StoryLayout.block(width,height,position ?: StoryLayout.bottomTextPosition(height))
         val contrast=photoTextColor(template,box,photoPosition)
         val background=when(mode) {
-            StoryBackgroundMode.WHITE -> Color.WHITE
+            StoryBackgroundMode.WHITE -> StoryLayout.CANVAS_COLOR
             StoryBackgroundMode.NONE -> Color.TRANSPARENT
             StoryBackgroundMode.AUTO -> contrast.background ?: Color.TRANSPARENT
         }

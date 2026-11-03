@@ -103,6 +103,19 @@ class MainActivity : AppCompatActivity() {
         ))
     }
 
+    private fun requestEditorExit() {
+        if (isSaving) return
+        if (!hasUnsavedEdits() || targetImageUri == null) {
+            finish()
+            return
+        }
+        QuickBeautyDialog.message(this, getString(R.string.exit_editor), getString(R.string.unsaved_exit_message), listOf(
+            QuickBeautyDialog.Action(getString(R.string.save_and_exit)) { saveProcessedImage(finishAfterSave = true) },
+            QuickBeautyDialog.Action(getString(R.string.discard_and_exit)) { finish() },
+            QuickBeautyDialog.Action(getString(R.string.cancel))
+        ))
+    }
+
     private fun showSavedPhoto() {
         val uri = lastSavedUri ?: return
         try {
@@ -145,7 +158,7 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = requestPhotoChange()
+            override fun handleOnBackPressed() = requestEditorExit()
         })
         applyWindowInsets()
         detector = FaceBodyDetector()
@@ -689,7 +702,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveProcessedImage(changePhotoAfterSave: Boolean = false) {
+    private fun saveProcessedImage(changePhotoAfterSave: Boolean = false, finishAfterSave: Boolean = false) {
         if (isSaving) return
         val uri = targetImageUri
         val landmarks = detectedLandmarks
@@ -736,7 +749,8 @@ class MainActivity : AppCompatActivity() {
                 lastSavedSnapshot = editSnapshot
                 lastSavedUri = savedUri
                 saveResultPanel.visibility = if (currentEditSnapshot() == editSnapshot) View.VISIBLE else View.GONE
-                if (changePhotoAfterSave) pickImageFromGallery()
+                if (finishAfterSave) finish()
+                else if (changePhotoAfterSave) pickImageFromGallery()
             } else {
                 Toast.makeText(this@MainActivity, getString(R.string.toast_save_failed), Toast.LENGTH_SHORT).show()
             }

@@ -152,11 +152,11 @@ class SnsStoryActivity : AppCompatActivity() {
             orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(8),dp(16),dp(10));setBackgroundColor(0xFF191A21.toInt())
         }
         controlsPanel=controls
-        val utility=LinearLayout(this)
+        val utility=LinearLayout(this).apply { gravity=Gravity.CENTER;isBaselineAligned=false }
         captionButton=action(getString(R.string.story_text)).apply { textSize=13f;setOnClickListener { editor.focusCaption() } }
         fontButton=action("Aa").apply { textSize=13f;setOnClickListener { showTextSize() } }
         today=action(getString(R.string.story_today)).apply {
-            textSize=12f
+            textSize=13f
             setOnClickListener {
                 storyDate=if(storyDate==null) SimpleDateFormat("yyyy.MM.dd",Locale.getDefault()).format(Date()) else null
                 if(storyDate==null) selectedElement=StoryElement.CAPTION else selectedElement=StoryElement.DATE
@@ -176,7 +176,7 @@ class SnsStoryActivity : AppCompatActivity() {
             it.setAutoSizeTextTypeUniformWithConfiguration(10,13,1,android.util.TypedValue.COMPLEX_UNIT_SP)
             utility.addView(it,LinearLayout.LayoutParams(0,dp(46),1f))
         }
-        controls.addView(utility)
+        controls.addView(utility,LinearLayout.LayoutParams(-1,dp(48)))
         val sliderRow=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL;visibility=View.GONE }
         sizePanel=sliderRow
         sizeValue=TextView(this).apply { textSize=12f;setTextColor(Color.WHITE);gravity=Gravity.CENTER }
@@ -194,8 +194,8 @@ class SnsStoryActivity : AppCompatActivity() {
         }
         sliderRow.addView(sizeSlider,LinearLayout.LayoutParams(0,dp(40),1f))
         controls.addView(sliderRow)
-        val formatScroll=HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled=false }
-        formatRow=LinearLayout(this).apply { gravity=Gravity.CENTER_VERTICAL }
+        val formatScroll=HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled=false;isFillViewport=true }
+        formatRow=LinearLayout(this).apply { gravity=Gravity.CENTER;isBaselineAligned=false }
         val fonts=listOf(android.graphics.Typeface.DEFAULT,ResourcesCompat.getFont(this,R.font.nanum_pen_script),ResourcesCompat.getFont(this,R.font.gowun_batang_bold))
         val fontNames=listOf(R.string.story_font_sans,R.string.story_font_hand,R.string.story_font_serif)
         formatPresets.forEachIndexed { index,preset ->
@@ -209,7 +209,7 @@ class SnsStoryActivity : AppCompatActivity() {
             formatButtons.add(chip)
             formatRow.addView(chip,LinearLayout.LayoutParams(dp(48),dp(44)).apply { setMargins(dp(4),dp(2),dp(4),dp(8)) })
         }
-        formatScroll.addView(formatRow);controls.addView(formatScroll)
+        formatScroll.addView(formatRow,FrameLayout.LayoutParams(-1,-2));controls.addView(formatScroll,LinearLayout.LayoutParams(-1,-2))
         share=action(getString(R.string.story_share)).apply {
             background=rounded(0xFF7563E7.toInt());setOnClickListener { export(true) }
         }
@@ -238,7 +238,7 @@ class SnsStoryActivity : AppCompatActivity() {
                 val preset=formatPresets[index];val white=preset.second==StoryBackgroundMode.WHITE
                 chip.setTextColor(if(white) Color.BLACK else Color.WHITE)
                 chip.background=GradientDrawable().apply {
-                    setColor(if(white) Color.WHITE else 0xFF30313B.toInt());cornerRadius=dp(22).toFloat()
+                    setColor(if(white) StoryLayout.CANVAS_COLOR else 0xFF30313B.toInt());cornerRadius=dp(22).toFloat()
                     if(preset.first==font && preset.second==mode) setStroke(dp(2),0xFFA891FF.toInt())
                 }
                 chip.isSelected=preset.first==font && preset.second==mode
@@ -363,7 +363,7 @@ class SnsStoryActivity : AppCompatActivity() {
     private fun dp(value: Int)=(value*resources.displayMetrics.density).toInt()
     private fun rounded(color: Int)=GradientDrawable().apply { setColor(color);cornerRadius=dp(12).toFloat() }
     private fun action(label: String)=TextView(this).apply {
-        text=label;textSize=14f;gravity=Gravity.CENTER;setTextColor(Color.WHITE)
+        text=label;textSize=14f;gravity=Gravity.CENTER;includeFontPadding=false;setTextColor(Color.WHITE)
         minHeight=dp(40);minWidth=dp(48);setPadding(dp(12),0,dp(12),0);isClickable=true;isFocusable=true
     }
 }

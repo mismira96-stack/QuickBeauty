@@ -20,6 +20,9 @@ object StoryLayout {
     const val HEIGHT=1920f
     const val SAFE_TOP=0f
     const val SAFE_BOTTOM=1920f
+    const val CANVAS_COLOR=0xFFFAF9F7.toInt()
+    const val TEXT_BOTTOM_MARGIN=72f
+    const val TEXT_STACK_GAP=24f
     data class Box(val left: Float,val top: Float,val right: Float,val bottom: Float) {
         val width get()=right-left
         val height get()=bottom-top
@@ -66,6 +69,10 @@ object StoryLayout {
         return Box(x,y,x+w,y+h)
     }
     fun center(b: Box)=StoryTextPosition((b.left+b.right)/2/WIDTH,(b.top+b.bottom)/2/HEIGHT)
+    fun bottomTextPosition(height: Float, below: Box?=null): StoryTextPosition {
+        val bottom=below?.let { it.top-TEXT_STACK_GAP } ?: (HEIGHT-TEXT_BOTTOM_MARGIN)
+        return StoryTextPosition(.5f,(bottom-height*.5f)/HEIGHT)
+    }
     fun textScale(width: Float,height: Float,requested: Float): Float {
         val finite=if(requested.isFinite()) requested else 1f
         return minOf(finite.coerceIn(.5f,2.2f),1032f/width,1920f/height).coerceAtLeast(.01f)

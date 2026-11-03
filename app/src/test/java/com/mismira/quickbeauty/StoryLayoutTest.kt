@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StoryLayoutTest {
+    @Test fun defaultTextStacksAtBottomCenterWithoutOverlap() {
+        val date=StoryLayout.block(340f,80f,StoryLayout.bottomTextPosition(80f))
+        val caption=StoryLayout.block(600f,180f,StoryLayout.bottomTextPosition(180f,date))
+        assertEquals(.5f,StoryLayout.center(date).x,.001f)
+        assertEquals(.5f,StoryLayout.center(caption).x,.001f)
+        assertEquals(1920f-StoryLayout.TEXT_BOTTOM_MARGIN,date.bottom,.001f)
+        assertEquals(date.top-StoryLayout.TEXT_STACK_GAP,caption.bottom,.001f)
+        assertTrue(caption.top>=0f && date.bottom<=1920f)
+    }
+
     @org.junit.Test fun photoCanMoveLeftAtExactFrameAspect() {
         val t=StoryTemplateType.CLEAN_PURE
         val p=StoryPhotoPosition(.5f,.5f)

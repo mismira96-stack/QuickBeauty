@@ -47,4 +47,8 @@
     <string name="photo_viewer_unavailable">사진 보기 앱을 열 수 없어요. 갤러리에서 저장한 사진을 확인해 주세요.</string>
     <string name="saved_photo_message">✓ 저장했어요</string>
     <string name="view_saved_photo">사진 보기</string>
+    <string name="exit_editor">편집 종료</string>
+    <string name="unsaved_exit_message">저장하지 않은 보정이 있어요. 저장하고 종료할까요?</string>
+    <string name="save_and_exit">저장하고 종료</string>
+    <string name="discard_and_exit">저장 없이 종료</string>
 </resources>
