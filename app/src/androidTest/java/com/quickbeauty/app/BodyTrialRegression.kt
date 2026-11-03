@@ -32,14 +32,16 @@ internal object BodyTrialRegression {
             val target = lm.allFaces.maxByOrNull { it.bounds.bottom } ?: error("No faces")
             detector.switchToFace(lm, target.index)
             check(lm.canAdjustBody()) { "Foreground target body unavailable" }
-            val edits = mapOf(target.index to BeautyAdjustParams(bodySlim = 85))
+            val amount=args.getString("amount")?.toIntOrNull()?.coerceIn(0,100) ?: 85
+            val tone=args.getString("tone")?.toIntOrNull()?.coerceIn(0,100) ?: 0
+            val edits = mapOf(target.index to BeautyAdjustParams(bodySlim = amount))
             val verts = BeautyFilterEngine.computeWarpedVertices(bitmap.width, bitmap.height, lm,
-                BeautyAdjustParams(bodySlim = 85), faceParamsByIndex = edits)
+                BeautyAdjustParams(bodySlim = amount, coolTone = tone), faceParamsByIndex = edits)
             for (r in 0..60) for (c in 0 until 60) {
                 val at = (r * 61 + c) * 2
                 check(verts[at + 2] > verts[at]) { "Folded mesh" }
             }
-            val out = checkNotNull(BeautyFilterEngine.process(bitmap, lm, BeautyAdjustParams(bodySlim = 85), edits))
+            val out = checkNotNull(BeautyFilterEngine.process(bitmap, lm, BeautyAdjustParams(bodySlim = amount, coolTone = tone), edits))
             File(i.targetContext.cacheDir, "body-trial-85.png").outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
             if (out !== bitmap) out.recycle()
             return "Foreground body selected=${target.index}, independent body warp and monotone mesh passed\n"

@@ -1,0 +1,12 @@
+{
+  "versionName": "1.1.8",
+  "versionCode": 21,
+  "track": "production",
+  "trackStatus": "completed",
+  "bundleSha256": "de0c7fc285e27c4215e443656146405f1bbed59f33e828e8584e33dab55c5bd0",
+  "committed": true,
+  "reviewSubmissionRequested": true,
+  "reviewBehavior": "ERROR_IF_IN_REVIEW",
+  "publicationApprovalVerified": false,
+  "otherListingTextVideoImagesAndTracksUnchanged": true
+}

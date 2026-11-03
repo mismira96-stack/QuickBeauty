@@ -431,3 +431,15 @@ app/src/main/java/com/mismira/quickbeauty/
 - 합성 시료와 검증 화면은 C:/work/outputs/quickbeauty-navigation-story-20261103 에 로컬 보관. 개인 사진은 Git에 포함하지 않는다. 사용자 확인 전 Play 업로드/버전 증가는 하지 않았다.
 - Play 설치본은 서명 불일치로 덮어설치하지 못했으며 삭제하지 않았다. 별도 패키지 com.quickbeauty.app.debug(퀵뷰티 테스트)를 설치/실행했다. 계측 도우미 패키지는 검증 후 제거했다.
 - 시험 APK: quickbeauty-1.1.7-navigation-story-test.apk, SHA256 25b16f47ddb1ed89635ef3d3d8f4384444d89d26b52c0f22745ebf2610970a7e. 실제 배포 시 새 versionCode가 필요하다. 몸매 팔 두께 이슈와 쿨톤/밝기 TODO는 이번에 수정하지 않았다.
+
+## 2026-11-03 — 팔 보완 수용 / 얼굴 한정 쿨톤 시험 폐기 / 1.1.8(21) 심사 제출
+
+- 사용자 요청으로 출시를 잠시 멈추고 팔 transfer plateau와 얼굴 중심 쿨톤을 함께 시험했다. 시험은 codex/skin-tone-arm-trial에서 분리 진행했다.
+- 팔은 일정 수평 이동량 구간(.30~.85 정규화 반경)과 부드러운 바깥 감쇠(1.5까지)를 추가했다. 최대 변위는 이전 프로파일의 최대값에 맞췄다. 해당 수학적 구간의 가로 폭 보존/연속성/단조성 테스트를 추가했다. 사용자가 몸매 결과는 괜찮다고 확인했다. 팔의 모든 위치나 배경·다른 사람 보호 가중치까지 팽창을 보장하지는 않으며 TODO의 광범위 검증은 유지한다.
+- 얼굴 좌표·볼/코 색상 샘플과 부드러운 마스크로 인물 배경의 쿨톤 변화를 제한하는 시험본을 만들었으나, 사용자가 얼굴과 몸의 색이 따로 보여 부자연스럽다고 보고했다. 이 시험은 폐기하고 기존 전체 쿨톤으로 원복했다.
+- 최종 Tone 행렬/저장 process 함수와 BeautyPreviewView 전체를 1e352e2 기준 원본과 바이트 단위 대조했다. FaceToneRenderer/FaceToneRegression 및 얼굴 전용 행렬은 제거. 추가 피부 모델/SDK/권한은 없다. 로컬에서 검토한 모델 파일도 앱/저장소에 넣지 않았다.
+- 사용자 최종 승인 범위: 기존 쿨톤·밝기 유지, 팔 보완, Back 종료 복구, 스토리 버튼 정렬/문구·날짜 하단 중앙 기본 위치/독립 조절, 배경색 웜화이트 통일을 포함해 심사 제출까지 진행.
+- versionName 1.1.8 / versionCode 21. JVM 65개, release APK/AAB/debug/instrumentation 빌드와 release vital lint, APK 서명 및 16KB ZIP 정렬 검증 통과. 같은 날 앞선 기기 계측과 사용자 수용 기록은 위 항목 참조. 최종 원복 후 재설치/기기 재실행을 시도했으나 폰 연결이 끊겨 수행하지 못했다. 폰 테스트앱은 폐기된 얼굴 한정 시험본일 수 있다.
+- AAB SHA256 de0c7fc285e27c4215e443656146405f1bbed59f33e828e8584e33dab55c5bd0, APK SHA256 43fd6548a3b956d8d237af50329fe48cbce55f0c18bec7b5fd347ad9285a9c67.
+- Google API validation과 최종 commit 성공. ERROR_IF_IN_REVIEW로 기존 심사를 취소하지 않았으며, 새 edit 재조회에서 production21/completed 배포 설정과 서버 번들 해시를 확인했다. 스토어 소개/영상/아이콘/스크린샷/배너/다른 트랙은 그대로임을 대조했다. 심사 요청 제출 성공이며 승인/일반 공개 전파 완료를 뜻하지 않는다.
+- 증적: release/1.1.8/*.json, RELEASE-1.1.8.md, tools/publish_quickbeauty_118.py. 개인 시료/화면은 C:/work/outputs 내에만 보관하며 Git 제외. 사용자가 추가로 누를 제출 버튼은 없다.

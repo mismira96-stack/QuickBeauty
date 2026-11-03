@@ -1,0 +1,10 @@
+{
+  "tests": 65,
+  "failures": 0,
+  "tone": "Restored original global Tone; preview, matrix, export code checked against 1e352e2",
+  "artifacts": {
+    "apk": "43fd6548a3b956d8d237af50329fe48cbce55f0c18bec7b5fd347ad9285a9c67",
+    "aab": "de0c7fc285e27c4215e443656146405f1bbed59f33e828e8584e33dab55c5bd0"
+  },
+  "finalDeviceRerun": "Phone disconnected after user accepted arm trial. Earlier same-day navigation/story and arm-profile checks passed."
+}

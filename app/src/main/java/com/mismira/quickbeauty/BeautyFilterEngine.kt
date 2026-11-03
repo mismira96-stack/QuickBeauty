@@ -517,15 +517,16 @@ object BeautyFilterEngine {
                             val dx = origX - bodyCenterX
                             val absDx = abs(dx)
                             val maxBodyW = bodyHalfWidth * if (verifiedBody != null) 1.6f else 2.0f
-                            if (absDx < maxBodyW) {
+                            if (absDx < maxBodyW * if (verifiedBody != null) BodySlimProfile.OUTER else 1f) {
                                 val xNorm = (maxBodyW - absDx) / maxBodyW
                                 val xWeight = xNorm * xNorm
                                 val edgeSpan = max(width * 0.08f, bodyHalfWidth * 0.5f)
                                 val edgeT = (min(origX, width - origX) / edgeSpan).coerceIn(0f, 1f)
                                 val edgeWeight = edgeT * edgeT * (3f - 2f * edgeT)
                                 val strength = if (verifiedBody != null) .38f else .22f
-                                val totalWeight = yWeight * xWeight * bodySlimFactor * strength * edgeWeight * (1f - bodyProtection)
-                                currX -= dx * totalWeight
+                                val totalWeight = yWeight * bodySlimFactor * strength * edgeWeight * (1f - bodyProtection)
+                                currX -= if (verifiedBody != null) BodySlimProfile.inwardDistance(dx,maxBodyW)*totalWeight
+                                    else dx*xWeight*totalWeight
                             }
                         }
                     }

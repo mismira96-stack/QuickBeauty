@@ -1,0 +1,22 @@
+{
+  "track": "production",
+  "releases": [
+    {
+      "name": "QuickBeauty 1.1.8 - 편집 흐름과 스토리 정렬 개선",
+      "versionCodes": [
+        "21"
+      ],
+      "releaseNotes": [
+        {
+          "language": "ko-KR",
+          "text": "뒤로가기를 누르면 편집을 종료하며, 저장하지 않은 보정은 확인합니다. 사진 변경은 상단 아이콘에서 할 수 있습니다.\n스토리 문구와 날짜의 기본 위치를 하단 중앙으로 맞추고, 글꼴·크기 조절 정렬을 개선했습니다.\n문구·날짜 배경을 캔버스와 같은 색으로 맞췄습니다.\n몸매 보정 시 팔 주변이 늘어나는 현상을 줄이도록 보완했습니다."
+        },
+        {
+          "language": "en-US",
+          "text": "Back now closes the editor, with a prompt for unsaved edits. Use the top photo icon to change photos.\nStory captions and dates start at the bottom center, with aligned font and size controls.\nText backgrounds now match the story canvas.\nRefined body slimming to reduce stretching around the arms."
+        }
+      ],
+      "status": "completed"
+    }
+  ]
+}
